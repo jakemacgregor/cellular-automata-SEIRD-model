@@ -1,5 +1,6 @@
 class Cell:
-    def __init__(self, coords, population, connection, movement, susceptible, infected, recovered):
+    def __init__(self, coords: list[int], population: int, connection: list[list[float]], movement: list[list[float]],
+                 susceptible: float, infected: float, recovered: float):
         # Co-ords are an array [i, j] where the cell is in position [i, j] in cell space
         self.coords = coords
         self.population = population
@@ -20,8 +21,8 @@ class Cell:
     def __str__(self):
         return f"S: {self.susceptible}, I: {self.infected}, R: {self.recovered}"
 
-    def get_connection_factor(self, a, b):
+    def get_connection_factor(self, a: int, b: int) -> float:
         return self.connection[a][b]
 
-    def get_movement_factor(self, a, b):
+    def get_movement_factor(self, a: int, b: int) -> float:
         return self.movement[a][b]

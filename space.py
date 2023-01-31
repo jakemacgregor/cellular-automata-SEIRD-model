@@ -6,7 +6,7 @@ def discretise(n):
 
 
 class Space:
-    def __init__(self, r, c, eps, virulence):
+    def __init__(self, r: int, c: int, eps: float, virulence: float):
         # Defines an r x c grid of cells at time t=0
         self.r = r
         self.c = c
@@ -28,7 +28,7 @@ class Space:
         self.cells = cells
 
     # Returns a 1D array of neighbours of a given cell
-    def get_neighbourhood(self, coords):
+    def get_neighbourhood(self, coords: list[int]) -> list[list[Cell]]:
         neighbourhood = []
 
         for i in range(-1, 2):
@@ -46,8 +46,8 @@ class Space:
 
         return neighbourhood
 
-    def neighbourhood_transition_term(self, neighbourhood, cell):
-        total = 0
+    def neighbourhood_transition_term(self, neighbourhood: list[list[Cell]], cell: Cell) -> float:
+        total = 0.0
         for r in range(3):
             for c in range(3):
                 neighbour = neighbourhood[r][c]
