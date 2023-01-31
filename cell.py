@@ -25,28 +25,3 @@ class Cell:
 
     def get_movement_factor(self, a, b):
         return self.movement[a][b]
-
-    def neighbourhood_effect(self, v, neighbourhood, t):
-        total = 0
-        for i in range(3):
-            for j in range(3):
-                neighbour = neighbourhood[i][j]
-                if neighbour is None:
-                    continue
-
-                c = self.get_connection_factor(i, j)
-                m = self.get_movement_factor(i, j)
-                total += (neighbour.population / self.population) * c * m * v * neighbour.infected[t]
-
-        return total
-
-    def transition(self, eps, vir, neighbourhood):
-        n = self.neighbourhood_effect(vir, neighbourhood, len(self.infected) - 1)
-        i = (1 - eps) * self.infected[-1] + vir * self.susceptible[-1] * self.infected[-1] + self.susceptible[-1] * n
-        s = self.susceptible[-1] - vir * self.susceptible[-1] * self.infected[-1] - self.susceptible[-1] * n
-        r = self.recovered[-1] + eps * self.infected[-1]
-
-        self.susceptible.append(s)
-        self.susceptible.append(i)
-        self.susceptible.append(r)
-        return
