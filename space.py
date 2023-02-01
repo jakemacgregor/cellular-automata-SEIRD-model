@@ -16,7 +16,7 @@ class Space:
         self.eps = eps
         self.virulence = virulence
 
-        temp_m_c = [[0.0, 0.0, 0.0] * 3]
+        temp_m_c = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
         # Initialise 2D matrix of cells
         cells = []
         for i in range(r):
@@ -35,27 +35,27 @@ class Space:
             n = [None, None, None]
             row = coords[0] + i
             if not 0 <= row < self.r:
-                neighbourhood = neighbourhood.append(n)
+                neighbourhood.append(n)
                 continue
             for j in range(-1, 2):
                 column = coords[1] + j
                 if not 0 <= column < self.c:
                     continue
                 n[j + 1] = self.cells[row][column]
-            neighbourhood = neighbourhood.append(n)
+            neighbourhood.append(n)
 
         return neighbourhood
 
     def neighbourhood_transition_term(self, neighbourhood: list[list[Cell]], cell: Cell) -> float:
         total = 0.0
-        for r in range(3):
-            for c in range(3):
-                neighbour = neighbourhood[r][c]
+        for row in range(3):
+            for col in range(3):
+                neighbour = neighbourhood[row][col]
                 if neighbour is None:
                     continue
 
-                c = cell.get_connection_factor(r, c)
-                m = cell.get_movement_factor(r, c)
+                c = cell.get_connection_factor(row, col)
+                m = cell.get_movement_factor(row, col)
                 total += (neighbour.population / cell.population) * c * m * self.virulence * neighbour.infected[self.t]
 
         return total
@@ -71,9 +71,9 @@ class Space:
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
                 i = discretise((1 - self.eps) * prev_i + self.virulence * prev_s * prev_i + prev_s * n)
                 s = discretise(prev_s - self.virulence * prev_s * prev_i - prev_s * n)
-                r = discretise(prev_r + self.eps * prev_i)
+                r = discretise(1 - (s + i))
 
-                if not 0.99 < s + i + r < 1.01:
+                if not 0.99 <= s + i + r <= 1.01:
                     raise Exception("Something's gone wrong")
 
                 cell.susceptible.append(s)

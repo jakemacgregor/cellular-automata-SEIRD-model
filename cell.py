@@ -19,7 +19,7 @@ class Cell:
         self.recovered = [round(recovered * 100, 0) / 100]
 
     def __str__(self):
-        return f"S: {self.susceptible}, I: {self.infected}, R: {self.recovered}"
+        return f"S: {self.susceptible[-1]}, I: {self.infected[-1]}, R: {self.recovered[-1]}"
 
     def get_connection_factor(self, a: int, b: int) -> float:
         return self.connection[a][b]
