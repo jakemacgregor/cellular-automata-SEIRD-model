@@ -11,21 +11,33 @@ class Space:
         self.r = r
         self.c = c
         self.t = 0
+        self.population = 0
+
+        self.susceptible = []
+        self.infected = []
+        self.recovered = []
 
         # Global parameters of the disease being modelled
         self.eps = eps
         self.virulence = virulence
 
-        temp_m_c = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
         # Initialise 2D matrix of cells
+        temp_m_c = [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3]]
         cells = []
         for i in range(r):
             row = []
             for j in range(c):
                 row.append(Cell([i, j], 100, temp_m_c, temp_m_c, 1.0, 0.0, 0.0))
+                self.population += 100
             cells.append(row)
+        cells[5][5].infected = [0.25]
+        cells[5][5].susceptible = [0.75]
 
         self.cells = cells
+        self.update_current_state()
+
+    def __str__(self):
+        return f"M: S:{round(self.susceptible[-1],4)}, I:{round(self.infected[-1],4)}, R:{round(self.recovered[-1],4)}"
 
     # Returns a 1D array of neighbours of a given cell
     def get_neighbourhood(self, coords: list[int]) -> list[list[Cell]]:
@@ -65,7 +77,6 @@ class Space:
             for cell in r:
                 prev_i = cell.infected[self.t]
                 prev_s = cell.susceptible[self.t]
-                prev_r = cell.recovered[self.t]
 
                 neighbourhood = self.get_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
@@ -80,4 +91,29 @@ class Space:
                 cell.infected.append(i)
                 cell.recovered.append(r)
 
+        self.update_current_state()
         self.t += 1
+
+    def update_current_state(self):
+        s = 0.0
+        i = 0.0
+        r = 0.0
+
+        for row in range(self.r):
+            for col in range(self.c):
+                s += self.cells[row][col].susceptible[-1]
+                i += self.cells[row][col].infected[-1]
+                r += self.cells[row][col].recovered[-1]
+
+        mean_s = s / (self.r * self.c)
+        mean_i = i / (self.r * self.c)
+        mean_r = 1 - mean_i - mean_s
+
+        self.susceptible.append(mean_s)
+        self.infected.append(mean_i)
+        self.recovered.append(mean_r)
+
+    def print_results(self):
+        for i in range(self.t):
+            print(f"T:{i}, S:{round(self.susceptible[i] * self.population)}, I:{round(self.infected[i] * self.population)}, "
+                  f"R:{round(self.recovered[i] * self.population)}")
