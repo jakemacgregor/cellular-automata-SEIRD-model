@@ -1,5 +1,6 @@
 from cell import Cell
-
+from matplotlib import pyplot as plt
+from matplotlib import use as mpl_use
 
 def discretise(n):
     return round(n * 100) / 100
@@ -22,16 +23,18 @@ class Space:
         self.virulence = virulence
 
         # Initialise 2D matrix of cells
-        temp_m_c = [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3]]
+        temp_m = [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]]
+        temp_c = [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
+
         cells = []
         for i in range(r):
             row = []
             for j in range(c):
-                row.append(Cell([i, j], 100, temp_m_c, temp_m_c, 1.0, 0.0, 0.0))
+                row.append(Cell([i, j], 100, temp_c, temp_m, 1.0, 0.0, 0.0))
                 self.population += 100
             cells.append(row)
-        cells[5][5].infected = [0.25]
-        cells[5][5].susceptible = [0.75]
+        cells[24][24].infected = [0.3]
+        cells[24][24].susceptible = [0.7]
 
         self.cells = cells
         self.update_current_state()
@@ -113,7 +116,17 @@ class Space:
         self.infected.append(mean_i)
         self.recovered.append(mean_r)
 
-    def print_results(self):
+    def print_plot_results(self):
         for i in range(self.t):
             print(f"T:{i}, S:{round(self.susceptible[i] * self.population)}, I:{round(self.infected[i] * self.population)}, "
                   f"R:{round(self.recovered[i] * self.population)}")
+
+        mpl_use('MacOSX')
+        x = range(len(self.infected))
+        plt.plot(x, self.infected, label="I")
+        plt.plot(x, self.susceptible, label="S")
+        plt.plot(x, self.recovered, label="R")
+        plt.xlabel("t")
+        plt.ylabel("Proportion of population")
+        plt.legend()
+        plt.show()

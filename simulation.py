@@ -1,13 +1,10 @@
-import numpy as np
 from space import Space
-from cell import Cell
 
 if __name__ == '__main__':
-    space = Space(10, 10, 0.1, 0.3)
+    space = Space(50, 50, 0.4, 0.3)
 
-    for i in range(100):
+    for i in range(60):
         space.evolve()
-        print(space.cells[5][5])
-        print(space)
+        print(space.cells[24][24])
 
-    space.print_results()
+    space.print_plot_results()
