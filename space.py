@@ -2,6 +2,7 @@ from cell import Cell
 from matplotlib import pyplot as plt
 from matplotlib import use as mpl_use
 
+
 def discretise(n):
     return round(n * 100) / 100
 
@@ -91,7 +92,7 @@ class Space:
                 prev_i = cell.infected[self.t]
                 prev_s = cell.susceptible[self.t]
 
-                neighbourhood = self.get_vn_neighbourhood(cell.coords)
+                neighbourhood = self.get_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
                 i = discretise((1 - self.eps) * prev_i + self.virulence * prev_s * prev_i + prev_s * n)
                 s = discretise(prev_s - self.virulence * prev_s * prev_i - prev_s * n)
@@ -133,10 +134,51 @@ class Space:
 
         mpl_use('MacOSX')
         x = range(len(self.infected))
+        plt.cla()
         plt.plot(x, self.infected, label="I")
         plt.plot(x, self.susceptible, label="S")
         plt.plot(x, self.recovered, label="R")
         plt.xlabel("t")
         plt.ylabel("Proportion of population")
         plt.legend()
+        plt.show()
+
+    def plot_final_state(self):
+        figure, axis = plt.subplots(2, 3)
+        i0 = []
+        i5 = []
+        i10 = []
+        i15 = []
+        i20 = []
+        i25 = []
+
+        for r in range(self.r):
+            row0 = []
+            row5 = []
+            row10 = []
+            row15 = []
+            row20 = []
+            row25 = []
+            for c in range(self.c):
+                row0.append(self.cells[r][c].infected[0])
+                row5.append(self.cells[r][c].infected[5])
+                row10.append(self.cells[r][c].infected[10])
+                row15.append(self.cells[r][c].infected[15])
+                row20.append(self.cells[r][c].infected[20])
+                row25.append(self.cells[r][c].infected[25])
+            i0.append(row0)
+            i5.append(row5)
+            i10.append(row10)
+            i15.append(row15)
+            i20.append(row20)
+            i25.append(row25)
+
+        mpl_use('MacOSX')
+        plt.cla()
+        axis[0, 0].imshow(i0)
+        axis[0, 1].imshow(i5)
+        axis[0, 2].imshow(i10)
+        axis[1, 0].imshow(i15)
+        axis[1, 1].imshow(i20)
+        axis[1, 2].imshow(i25)
         plt.show()
