@@ -42,7 +42,7 @@ class Space:
     def __str__(self):
         return f"M: S:{round(self.susceptible[-1],4)}, I:{round(self.infected[-1],4)}, R:{round(self.recovered[-1],4)}"
 
-    # Returns a 1D array of neighbours of a given cell
+    # Returns the Moore neighbourhood of a given cell as a 2D array
     def get_neighbourhood(self, coords: list[int]) -> list[list[Cell]]:
         neighbourhood = []
 
@@ -59,6 +59,16 @@ class Space:
                 n[j + 1] = self.cells[row][column]
             neighbourhood.append(n)
 
+        return neighbourhood
+
+    # Returns the von Neumann neighbourhood of a given cell as a 2D array
+    def get_vn_neighbourhood(self, coords: list[int]) -> list[list[Cell]]:
+        neighbourhood = self.get_neighbourhood(coords)
+
+        neighbourhood[0][0] = None
+        neighbourhood[0][2] = None
+        neighbourhood[2][0] = None
+        neighbourhood[2][2] = None
         return neighbourhood
 
     def neighbourhood_transition_term(self, neighbourhood: list[list[Cell]], cell: Cell) -> float:
@@ -81,7 +91,7 @@ class Space:
                 prev_i = cell.infected[self.t]
                 prev_s = cell.susceptible[self.t]
 
-                neighbourhood = self.get_neighbourhood(cell.coords)
+                neighbourhood = self.get_vn_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
                 i = discretise((1 - self.eps) * prev_i + self.virulence * prev_s * prev_i + prev_s * n)
                 s = discretise(prev_s - self.virulence * prev_s * prev_i - prev_s * n)
