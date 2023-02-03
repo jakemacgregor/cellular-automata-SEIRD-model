@@ -1,6 +1,7 @@
 from cell import Cell
 from matplotlib import pyplot as plt
 from matplotlib import use as mpl_use
+from math import floor
 
 
 def discretise(n):
@@ -145,40 +146,17 @@ class Space:
 
     def plot_final_state(self):
         figure, axis = plt.subplots(2, 3)
-        i0 = []
-        i5 = []
-        i10 = []
-        i15 = []
-        i20 = []
-        i25 = []
-
-        for r in range(self.r):
-            row0 = []
-            row5 = []
-            row10 = []
-            row15 = []
-            row20 = []
-            row25 = []
-            for c in range(self.c):
-                row0.append(self.cells[r][c].infected[0])
-                row5.append(self.cells[r][c].infected[5])
-                row10.append(self.cells[r][c].infected[10])
-                row15.append(self.cells[r][c].infected[15])
-                row20.append(self.cells[r][c].infected[20])
-                row25.append(self.cells[r][c].infected[25])
-            i0.append(row0)
-            i5.append(row5)
-            i10.append(row10)
-            i15.append(row15)
-            i20.append(row20)
-            i25.append(row25)
-
         mpl_use('MacOSX')
         plt.cla()
-        axis[0, 0].imshow(i0)
-        axis[0, 1].imshow(i5)
-        axis[0, 2].imshow(i10)
-        axis[1, 0].imshow(i15)
-        axis[1, 1].imshow(i20)
-        axis[1, 2].imshow(i25)
+
+        times = [0, 5, 10, 15, 20, 25]
+        for t in times:
+            i = []
+            for r in range(self.r):
+                row = []
+                for c in range(self.c):
+                    row.append(self.cells[r][c].infected[t])
+                i.append(row)
+            axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
+
         plt.show()
