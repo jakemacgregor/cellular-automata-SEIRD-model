@@ -45,7 +45,7 @@ class Space:
         return f"M: S:{round(self.susceptible[-1],4)}, I:{round(self.infected[-1],4)}, R:{round(self.recovered[-1],4)}"
 
     # Returns the Moore neighbourhood of a given cell as a 2D array
-    def get_neighbourhood(self, coords: list[int]) -> list[list[Cell]]:
+    def get_moore_neighbourhood(self, coords: list[int]) -> list[list[any]]:
         neighbourhood = []
 
         for i in range(-1, 2):
@@ -64,8 +64,8 @@ class Space:
         return neighbourhood
 
     # Returns the von Neumann neighbourhood of a given cell as a 2D array
-    def get_vn_neighbourhood(self, coords: list[int]) -> list[list[Cell]]:
-        neighbourhood = self.get_neighbourhood(coords)
+    def get_vn_neighbourhood(self, coords: list[int]) -> list[list[any]]:
+        neighbourhood = self.get_moore_neighbourhood(coords)
 
         neighbourhood[0][0] = None
         neighbourhood[0][2] = None
@@ -93,7 +93,7 @@ class Space:
                 prev_i = cell.infected[self.t]
                 prev_s = cell.susceptible[self.t]
 
-                neighbourhood = self.get_neighbourhood(cell.coords)
+                neighbourhood = self.get_moore_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
                 i = discretise((1 - self.eps) * prev_i + self.virulence * prev_s * prev_i + prev_s * n)
                 s = discretise(prev_s - self.virulence * prev_s * prev_i - prev_s * n)
@@ -128,13 +128,14 @@ class Space:
         self.infected.append(mean_i)
         self.recovered.append(mean_r)
 
-    def print_plot_results(self):
+    def plot_sir_print_results(self):
         for i in range(self.t):
             print(f"T:{i}, S:{round(self.susceptible[i] * self.population)}, I:{round(self.infected[i] * self.population)}, "
                   f"R:{round(self.recovered[i] * self.population)}")
 
-        mpl_use('MacOSX')
         x = range(len(self.infected))
+
+        mpl_use('MacOSX')
         plt.cla()
         plt.plot(x, self.infected, label="I")
         plt.plot(x, self.susceptible, label="S")
@@ -145,7 +146,7 @@ class Space:
         plt.show()
 
     def plot_final_state(self):
-        figure, axis = plt.subplots(2, 3)
+        figure, axis = plt.subplots(3, 3)
         mpl_use('MacOSX')
         plt.cla()
 
@@ -158,5 +159,10 @@ class Space:
                     row.append(self.cells[r][c].infected[t])
                 i.append(row)
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
+
+        x = range(len(self.infected))
+        axis[2, 0].plot(x, self.infected, label="I")
+        axis[2, 0].plot(x, self.susceptible, label="S")
+        axis[2, 0].plot(x, self.recovered, label="R")
 
         plt.show()
