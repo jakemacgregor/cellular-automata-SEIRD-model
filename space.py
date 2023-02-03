@@ -145,12 +145,14 @@ class Space:
         plt.legend()
         plt.show()
 
-    def plot_final_state(self):
+    def plot_final_state(self, times: list[int]):
         figure, axis = plt.subplots(3, 3)
         mpl_use('MacOSX')
         plt.cla()
 
-        times = [0, 5, 10, 15, 20, 25]
+        if len(times) > 6:
+            return
+
         for t in times:
             i = []
             for r in range(self.r):

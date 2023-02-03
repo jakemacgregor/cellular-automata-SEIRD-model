@@ -6,6 +6,7 @@ if __name__ == '__main__':
     eps = 0.4
     vir = 0.3
     iterations = 50
+    output_timestamps = [0, 5, 10, 15, 20, 25]
 
     if input("Do you want to specify parameters? (y/n)") == "y":
         columns = int(input("Number of columns (int):") or "50")
@@ -19,4 +20,15 @@ if __name__ == '__main__':
     for i in range(iterations):
         space.evolve()
 
-    space.plot_final_state()
+    if input("Do you want to specify timestamps for graphical output?") == "y":
+        output_timestamps = []
+        print("Enter 6 integer timestamps:")
+        for i in range(6):
+            t = int(input())
+            if not 0 <= t <= space.t:
+                print("invalid timestamp")
+                i -= 1
+                continue
+            output_timestamps.append(t)
+
+    space.plot_final_state(output_timestamps)
