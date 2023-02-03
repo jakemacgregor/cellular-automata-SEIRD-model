@@ -35,8 +35,8 @@ class Space:
                 row.append(Cell([i, j], 100, temp_c, temp_m, 1.0, 0.0, 0.0))
                 self.population += 100
             cells.append(row)
-        cells[24][24].infected = [0.3]
-        cells[24][24].susceptible = [0.7]
+        cells[round(r/2)][round(c/2)].infected = [0.3]
+        cells[round(r/2)][round(c/2)].susceptible = [0.7]
 
         self.cells = cells
         self.update_current_state()
