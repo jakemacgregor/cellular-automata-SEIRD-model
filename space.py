@@ -105,7 +105,7 @@ class Space:
                 prev_i = cell.infected[self.t]
                 prev_s = cell.susceptible[self.t]
 
-                neighbourhood = self.get_vn_neighbourhood(cell.coords)
+                neighbourhood = self.get_moore_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
 
                 s_to_i = self.virulence * prev_s * prev_i + prev_s * n
