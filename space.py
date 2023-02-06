@@ -128,7 +128,7 @@ class Space:
         self.infected.append(mean_i)
         self.recovered.append(mean_r)
 
-    def plot_sir_print_results(self):
+    def plot_sir_over_time(self):
         for i in range(self.t):
             print(f"T:{i}, S:{round(self.susceptible[i] * self.population)}, I:{round(self.infected[i] * self.population)}, "
                   f"R:{round(self.recovered[i] * self.population)}")
@@ -145,8 +145,8 @@ class Space:
         plt.legend()
         plt.show()
 
-    def plot_final_state(self, times: list[int]):
-        figure, axis = plt.subplots(3, 3)
+    def plot_state_at_times(self, times: list[int]):
+        figure, axis = plt.subplots(2, 3)
         mpl_use('MacOSX')
         plt.cla()
 
@@ -161,10 +161,5 @@ class Space:
                     row.append(self.cells[r][c].infected[t])
                 i.append(row)
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
-
-        x = range(len(self.infected))
-        axis[2, 0].plot(x, self.infected, label="I")
-        axis[2, 0].plot(x, self.susceptible, label="S")
-        axis[2, 0].plot(x, self.recovered, label="R")
 
         plt.show()

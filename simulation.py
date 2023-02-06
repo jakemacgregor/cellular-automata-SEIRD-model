@@ -31,4 +31,5 @@ if __name__ == '__main__':
                 continue
             output_timestamps.append(t)
 
-    space.plot_final_state(output_timestamps)
+    space.plot_sir_over_time()
+    space.plot_state_at_times(output_timestamps)
