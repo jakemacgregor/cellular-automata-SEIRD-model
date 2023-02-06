@@ -36,14 +36,14 @@ class Space:
         self.virulence = virulence
 
         # Initialise 2D matrix of cells
-        temp_m = [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]]
+        temp_m = [[0.5, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0.5]]
 
         cells = []
         for i in range(r):
             row = []
             for j in range(c):
                 # connection = get_connection_factor(i, j)
-                connection = [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
+                connection = [[1.0, 1.0, 1.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0]]
                 row.append(Cell([i, j], 100, connection, temp_m, 1.0, 0.0, 0.0))
                 self.population += 100
             cells.append(row)
@@ -68,12 +68,11 @@ class Space:
                 continue
             for j in range(-1, 2):
                 column = coords[1] + j
-                if not 0 <= column < self.c:
+                if not 0 <= column < self.c or (i == 0 and j == 0):
                     continue
                 n[j + 1] = self.cells[row][column]
             neighbourhood.append(n)
 
-        neighbourhood[1][1] = None
         return neighbourhood
 
     # Returns the von Neumann neighbourhood of a given cell as a 2D array
@@ -106,10 +105,15 @@ class Space:
                 prev_i = cell.infected[self.t]
                 prev_s = cell.susceptible[self.t]
 
-                neighbourhood = self.get_moore_neighbourhood(cell.coords)
+                neighbourhood = self.get_vn_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
-                i = discretise((1 - self.eps) * prev_i + self.virulence * prev_s * prev_i + prev_s * n)
-                s = discretise(prev_s - self.virulence * prev_s * prev_i - prev_s * n)
+
+                s_to_i = self.virulence * prev_s * prev_i + prev_s * n
+                if s_to_i > prev_s:
+                    s_to_i = prev_s
+
+                i = discretise((1 - self.eps) * prev_i + s_to_i)
+                s = discretise(prev_s - s_to_i)
                 r = discretise(1 - (s + i))
 
                 if not 0.99 <= s + i + r <= 1.01:
