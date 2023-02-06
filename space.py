@@ -73,6 +73,7 @@ class Space:
                 n[j + 1] = self.cells[row][column]
             neighbourhood.append(n)
 
+        neighbourhood[1][1] = None
         return neighbourhood
 
     # Returns the von Neumann neighbourhood of a given cell as a 2D array
