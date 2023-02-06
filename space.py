@@ -8,6 +8,17 @@ def discretise(n):
     return round(n * 100) / 100
 
 
+def get_connection_factor(i, j):
+    if 0 <= i <= 24 and 0 <= j <= 24:
+        return [[0.6, 0.6, 0.6], [0.6, 0.6, 0.6], [0.6, 0.6, 0.6]]
+    if 0 <= i <= 24 and 25 <= j <= 49:
+        return [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
+    if 25 <= i <= 49 and 0 <= j <= 24:
+        return [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    if 25 <= i <= 49 and 25 <= j <= 49:
+        return [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3]]
+
+
 class Space:
     def __init__(self, r: int, c: int, eps: float, virulence: float):
         # Defines an r x c grid of cells at time t=0
@@ -26,23 +37,24 @@ class Space:
 
         # Initialise 2D matrix of cells
         temp_m = [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]]
-        temp_c = [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
 
         cells = []
         for i in range(r):
             row = []
             for j in range(c):
-                row.append(Cell([i, j], 100, temp_c, temp_m, 1.0, 0.0, 0.0))
+                # connection = get_connection_factor(i, j)
+                connection = [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
+                row.append(Cell([i, j], 100, connection, temp_m, 1.0, 0.0, 0.0))
                 self.population += 100
             cells.append(row)
-        cells[round(r/2)][round(c/2)].infected = [0.3]
-        cells[round(r/2)][round(c/2)].susceptible = [0.7]
+        cells[round(r / 2)][round(c / 2)].infected = [0.3]
+        cells[round(r / 2)][round(c / 2)].susceptible = [0.7]
 
         self.cells = cells
         self.update_current_state()
 
     def __str__(self):
-        return f"M: S:{round(self.susceptible[-1],4)}, I:{round(self.infected[-1],4)}, R:{round(self.recovered[-1],4)}"
+        return f"M: S:{round(self.susceptible[-1], 4)}, I:{round(self.infected[-1], 4)}, R:{round(self.recovered[-1], 4)}"
 
     # Returns the Moore neighbourhood of a given cell as a 2D array
     def get_moore_neighbourhood(self, coords: list[int]) -> list[list[any]]:
@@ -130,8 +142,9 @@ class Space:
 
     def plot_sir_over_time(self):
         for i in range(self.t):
-            print(f"T:{i}, S:{round(self.susceptible[i] * self.population)}, I:{round(self.infected[i] * self.population)}, "
-                  f"R:{round(self.recovered[i] * self.population)}")
+            print(
+                f"T:{i}, S:{round(self.susceptible[i] * self.population)}, I:{round(self.infected[i] * self.population)}, "
+                f"R:{round(self.recovered[i] * self.population)}")
 
         x = range(len(self.infected))
 
