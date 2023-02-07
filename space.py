@@ -47,8 +47,8 @@ class Space:
                 row.append(Cell([i, j], 100, connection, temp_m, 1.0, 0.0, 0.0))
                 self.population += 100
             cells.append(row)
-        cells[round(r / 2)][round(c / 2)].infected = [0.3]
-        cells[round(r / 2)][round(c / 2)].susceptible = [0.7]
+        cells[round(r / 2)-1][round(c / 2)-1].infected = [0.3]
+        cells[round(r / 2)-1][round(c / 2)-1].susceptible = [0.7]
 
         self.cells = cells
         self.update_current_state()
@@ -104,6 +104,7 @@ class Space:
             for cell in r:
                 prev_i = cell.infected[self.t]
                 prev_s = cell.susceptible[self.t]
+                prev_r = cell.recovered[self.t]
 
                 neighbourhood = self.get_moore_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
@@ -112,9 +113,9 @@ class Space:
                 if s_to_i > prev_s:
                     s_to_i = prev_s
 
-                i = discretise((1 - self.eps) * prev_i + s_to_i)
-                s = discretise(prev_s - s_to_i)
-                r = discretise(1 - (s + i))
+                s = prev_s - s_to_i
+                i = (1 - self.eps) * prev_i + s_to_i
+                r = prev_r + self.eps * prev_i
 
                 if not 0.99 <= s + i + r <= 1.01:
                     raise Exception("Something's gone wrong")
@@ -122,6 +123,7 @@ class Space:
                 cell.susceptible.append(s)
                 cell.infected.append(i)
                 cell.recovered.append(r)
+                cell.discretise()
 
         self.update_current_state()
         self.t += 1
@@ -176,7 +178,7 @@ class Space:
             for r in range(self.r):
                 row = []
                 for c in range(self.c):
-                    row.append(self.cells[r][c].infected[t])
+                    row.append(self.cells[r][c].discrete_infected[t])
                 i.append(row)
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
 

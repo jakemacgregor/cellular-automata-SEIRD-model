@@ -14,9 +14,14 @@ class Cell:
         # Proportions of population of the cell who are susceptible, infected, or recovered
         # Discretised so that there is a finite number of states: (0.00, 0.01, 0.02, ..., 0.99, 1.00)
         # Stored as a list --> susceptible[t] = susceptible population at time step t
-        self.susceptible = [round(susceptible * 100, 0) / 100]
-        self.infected = [round(infected * 100, 0) / 100]
-        self.recovered = [round(recovered * 100, 0) / 100]
+        self.susceptible = [susceptible]
+        self.infected = [infected]
+        self.recovered = [recovered]
+
+        self.discrete_susceptible = []
+        self.discrete_infected = []
+        self.discrete_recovered = []
+        self.discretise()
 
     def __str__(self):
         return f"S: {self.susceptible[-1]}, I: {self.infected[-1]}, R: {self.recovered[-1]}"
@@ -26,3 +31,9 @@ class Cell:
 
     def get_movement_factor(self, a: int, b: int) -> float:
         return self.movement[a][b]
+
+    def discretise(self):
+        self.discrete_susceptible.append(round(self.susceptible[-1] * 100) / 100)
+        self.discrete_infected.append(round(self.infected[-1] * 100) / 100)
+        self.discrete_recovered.append(round(self.recovered[-1] * 100) / 100)
+        return
