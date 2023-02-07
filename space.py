@@ -4,10 +4,6 @@ from matplotlib import use as mpl_use
 from math import floor
 
 
-def discretise(n):
-    return round(n * 100) / 100
-
-
 def get_connection_factor(i, j):
     if 0 <= i <= 24 and 0 <= j <= 24:
         return [[0.6, 0.6, 0.6], [0.6, 0, 0.6], [0.6, 0.6, 0.6]]
