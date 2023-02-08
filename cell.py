@@ -2,7 +2,7 @@ class Cell:
     def __init__(self, coords: list[int], population: int, connection: list[list[float]], movement: list[list[float]],
                  susceptible: float, infected: float, recovered: float):
         # Co-ords are an array [i, j] where the cell is in position [i, j] in cell space
-        self.coords = coords
+        self.coords = tuple(coords)
         self.population = population
 
         # Nested array representing the neighbourhood for a cell of the form:

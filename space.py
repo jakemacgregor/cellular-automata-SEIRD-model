@@ -32,20 +32,14 @@ class Space:
         self.virulence = virulence
 
         # Initialise 2D matrix of cells
-        temp_m = [[0.5, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0.5]]
+        movement = [[0.5, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0.5]]
+        connection = [[1.0, 1.0, 1.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0]]
 
-        cells = []
-        for i in range(r):
-            row = []
-            for j in range(c):
-                # connection = get_connection_factor(i, j)
-                connection = [[1.0, 1.0, 1.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0]]
-                row.append(Cell([i, j], 100, connection, temp_m, 1.0, 0.0, 0.0))
-                self.population += 100
-            cells.append(row)
+        cells = [[Cell([i, j], 100, connection, movement, 1.0, 0.0, 0.0) for j in range(c)] for i in range(r)]
         cells[round(r / 2)-1][round(c / 2)-1].infected = [0.3]
         cells[round(r / 2)-1][round(c / 2)-1].susceptible = [0.7]
 
+        self.population = r * c * 100
         self.cells = cells
         self.update_current_state()
 
@@ -102,7 +96,7 @@ class Space:
                 prev_s = cell.susceptible[self.t]
                 prev_r = cell.recovered[self.t]
 
-                neighbourhood = self.get_moore_neighbourhood(cell.coords)
+                neighbourhood = self.get_vn_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
 
                 s_to_i = self.virulence * prev_s * prev_i + prev_s * n
@@ -112,9 +106,6 @@ class Space:
                 s = prev_s - s_to_i
                 i = (1 - self.eps) * prev_i + s_to_i
                 r = prev_r + self.eps * prev_i
-
-                if not 0.99 <= s + i + r <= 1.01:
-                    raise Exception("Something's gone wrong")
 
                 cell.susceptible.append(s)
                 cell.infected.append(i)
@@ -144,11 +135,6 @@ class Space:
         self.recovered.append(mean_r)
 
     def plot_sir_over_time(self):
-        for i in range(self.t):
-            print(
-                f"T:{i}, S:{round(self.susceptible[i] * self.population)}, I:{round(self.infected[i] * self.population)}, "
-                f"R:{round(self.recovered[i] * self.population)}")
-
         x = range(len(self.infected))
 
         mpl_use('MacOSX')
