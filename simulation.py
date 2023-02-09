@@ -1,4 +1,6 @@
 from space import Space
+from matplotlib import pyplot as plt
+from matplotlib import use as mpl_use
 
 if __name__ == '__main__':
     columns = 50
@@ -23,11 +25,23 @@ if __name__ == '__main__':
         constant_movement_factor = not (input("Do you want non-constant movement between cells? (y/n)") == "y")
         start_in_center = not (input("Start infection in random location? (y/n)") == "y")
 
-    space = Space(columns, rows, eps, vir, homogeneous_population, constant_connection_factor, constant_movement_factor,
-                  start_in_center)
+    space = Space(columns, rows, eps, vir, 0, 16, homogeneous_population, constant_connection_factor,
+                  constant_movement_factor, start_in_center)
+
+    space_2 = Space(columns, rows, eps, vir, 0.2, 16, homogeneous_population, constant_connection_factor,
+                    constant_movement_factor, start_in_center)
+
+    space_3 = Space(columns, rows, eps, vir, 0.3, 16, homogeneous_population, constant_connection_factor,
+                    constant_movement_factor, start_in_center)
+
+    space_4 = Space(columns, rows, eps, vir, 0.4, 16, homogeneous_population, constant_connection_factor,
+                    constant_movement_factor, start_in_center)
 
     for i in range(iterations):
         space.evolve()
+        space_2.evolve()
+        space_3.evolve()
+        space_4.evolve()
 
     if input("Do you want to specify timestamps for graphical output? (y/n)") == "y":
         output_timestamps = []
@@ -40,5 +54,16 @@ if __name__ == '__main__':
                 continue
             output_timestamps.append(t)
 
-    space.plot_sir_over_time()
-    space.plot_state_at_times(output_timestamps)
+    # space.plot_sir_over_time()
+    # space.plot_state_at_times(output_timestamps)
+    x = range(len(space.infected))
+    mpl_use('MacOSX')
+    plt.cla()
+    plt.plot(x, space.infected, label="0")
+    plt.plot(x, space_2.infected, label="0.2")
+    plt.plot(x, space_3.infected, label="0.4")
+    plt.plot(x, space_4.infected, label="0.6")
+    plt.xlabel("t")
+    plt.ylabel("Number of people")
+    plt.legend()
+    plt.show()
