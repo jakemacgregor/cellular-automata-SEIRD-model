@@ -2,21 +2,40 @@ from cell import Cell
 from matplotlib import pyplot as plt
 from matplotlib import use as mpl_use
 from math import floor
+from random import seed, random
 
 
-def get_connection_factor(i, j):
+def get_connection_factor(i: int, j: int, const: bool) -> list[list[float]]:
+    if const:
+        return [[1.0, 1.0, 1.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0]]
     if 0 <= i <= 24 and 0 <= j <= 24:
         return [[0.6, 0.6, 0.6], [0.6, 0, 0.6], [0.6, 0.6, 0.6]]
-    if 0 <= i <= 24 and 25 <= j <= 49:
+    if 0 <= i <= 24 and 25 <= j:
         return [[1.0, 1.0, 1.0], [1.0, 0, 1.0], [1.0, 1.0, 1.0]]
-    if 25 <= i <= 49 and 0 <= j <= 24:
+    if 25 <= i and 0 <= j <= 24:
         return [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-    if 25 <= i <= 49 and 25 <= j <= 49:
+    if 25 <= i and 25 <= j:
         return [[0.3, 0.3, 0.3], [0.3, 0, 0.3], [0.3, 0.3, 0.3]]
 
 
+def get_movement_factor(const: bool) -> list[list[float]]:
+    if const:
+        return [[0.5, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0.5]]
+    else:
+        seed(123)
+        return[[random(), random(), random()], [random(), 0, random()], [random(), random(), random()]]
+
+
+def get_population(j: int, const: bool) -> int:
+    if const:
+        return 100
+    else:
+        return round(pow(1.17, j) * 10)
+
+
 class Space:
-    def __init__(self, r: int, c: int, eps: float, virulence: float):
+    def __init__(self, r: int, c: int, eps: float, virulence: float, const_connection: bool, const_population: bool,
+                 const_movement: bool, start_center: bool):
         # Defines an r x c grid of cells at time t=0
         self.r = r
         self.c = c
@@ -31,20 +50,33 @@ class Space:
         self.eps = eps
         self.virulence = virulence
 
-        # Initialise 2D matrix of cells
-        movement = [[0.5, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0.5]]
-        connection = [[1.0, 1.0, 1.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0]]
+        # Initialise 2D matrix of cells, setting the central cell to have 30% infected population
+        cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
+                       get_movement_factor(const_movement), 1.0, 0.0, 0.0) for j in range(c)] for i in range(r)]
 
-        cells = [[Cell([i, j], 100, connection, movement, 1.0, 0.0, 0.0) for j in range(c)] for i in range(r)]
-        cells[round(r / 2)-1][round(c / 2)-1].infected = [0.3]
-        cells[round(r / 2)-1][round(c / 2)-1].susceptible = [0.7]
+        for row in cells:
+            for cell in row:
+                self.population += cell.population
 
-        self.population = r * c * 100
         self.cells = cells
+        self.start_infection(r, c, start_center)
         self.update_current_state()
 
     def __str__(self):
         return f"M: S:{round(self.susceptible[-1], 4)}, I:{round(self.infected[-1], 4)}, R:{round(self.recovered[-1], 4)}"
+
+    def start_infection(self, r: int, c: int, center: bool) -> None:
+        if center:
+            i = round(r / 2) - 1
+            j = round(c / 2) - 1
+            self.cells[i][j].infected = [0.3]
+            self.cells[i][j].susceptible = [0.7]
+        else:
+            seed(412)
+            i = round(random() * r)
+            j = round(random() * c)
+            self.cells[i][j].infected = [0.3]
+            self.cells[i][j].susceptible = [0.7]
 
     # Returns the Moore neighbourhood of a given cell as a 2D array
     def get_moore_neighbourhood(self, coords: list[int]) -> list[list[any]]:
@@ -89,14 +121,14 @@ class Space:
 
         return total
 
-    def evolve(self):
+    def evolve(self) -> None:
         for r in self.cells:
             for cell in r:
                 prev_i = cell.infected[self.t]
                 prev_s = cell.susceptible[self.t]
                 prev_r = cell.recovered[self.t]
 
-                neighbourhood = self.get_vn_neighbourhood(cell.coords)
+                neighbourhood = self.get_moore_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
 
                 s_to_i = self.virulence * prev_s * prev_i + prev_s * n
@@ -115,7 +147,7 @@ class Space:
         self.update_current_state()
         self.t += 1
 
-    def update_current_state(self):
+    def update_current_state(self) -> None:
         s = 0.0
         i = 0.0
         r = 0.0
@@ -134,7 +166,7 @@ class Space:
         self.infected.append(mean_i)
         self.recovered.append(mean_r)
 
-    def plot_sir_over_time(self):
+    def plot_sir_over_time(self) -> None:
         x = range(len(self.infected))
 
         mpl_use('MacOSX')
@@ -147,7 +179,7 @@ class Space:
         plt.legend()
         plt.show()
 
-    def plot_state_at_times(self, times: list[int]):
+    def plot_state_at_times(self, times: list[int]) -> None:
         figure, axis = plt.subplots(2, 3)
         mpl_use('MacOSX')
         plt.cla()
