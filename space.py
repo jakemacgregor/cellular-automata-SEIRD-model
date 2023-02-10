@@ -23,7 +23,7 @@ def get_movement_factor(const: bool) -> list[list[float]]:
         return [[0.5, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0.5]]
     else:
         seed(123)
-        return[[random(), random(), random()], [random(), 0, random()], [random(), random(), random()]]
+        return [[random(), random(), random()], [random(), 0, random()], [random(), random(), random()]]
 
 
 def get_population(j: int, const: bool) -> int:
@@ -79,6 +79,9 @@ class Space:
             j = round(random() * c)
             self.cells[i][j].infected = [0.3]
             self.cells[i][j].susceptible = [0.7]
+
+    def set_vaccination_factor(self, factor: float) -> None:
+        self.vaccination_factor = factor
 
     # Returns the Moore neighbourhood of a given cell as a 2D array
     def get_moore_neighbourhood(self, coords: list[int]) -> list[list[any]]:
@@ -179,19 +182,18 @@ class Space:
         x = range(len(self.infected))
 
         mpl_use('MacOSX')
-        plt.cla()
+        plt.figure()
         plt.plot(x, self.infected, label="I")
-#        plt.plot(x, self.susceptible, label="S")
-#        plt.plot(x, self.recovered, label="R")
+        plt.plot(x, self.susceptible, label="S")
+        plt.plot(x, self.recovered, label="R")
         plt.xlabel("t")
-        plt.ylabel("Proportion of population")
+        plt.ylabel("Number of people")
         plt.legend()
         plt.show()
 
     def plot_state_at_times(self, times: list[int]) -> None:
         figure, axis = plt.subplots(2, 3)
         mpl_use('MacOSX')
-        plt.cla()
 
         if len(times) > 6:
             return
@@ -206,3 +208,21 @@ class Space:
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
 
         plt.show()
+
+
+def plot_vaccination_results(s: list[Space]) -> None:
+    plt.figure()
+    x = range(len(s[0].infected))
+    mpl_use('MacOSX')
+    plt.plot(x, s[0].infected, label="0")
+    plt.plot(x, s[1].infected, label="0.2")
+    plt.plot(x, s[2].infected, label="0.3")
+    plt.plot(x, s[3].infected, label="0.4")
+    plt.xlabel("t")
+    plt.ylabel("Number of people")
+    plt.legend()
+
+    for space in s:
+        max_infected = max(space.infected)
+        print(
+            f"Vaccination: {space.vaccination_factor}, max I: {max_infected}, at time T: {space.infected.index(max_infected)}, total infected: {sum(space.infected)}")

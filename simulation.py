@@ -1,6 +1,6 @@
-from space import Space
+from space import Space, plot_vaccination_results
 from matplotlib import pyplot as plt
-from matplotlib import use as mpl_use
+from copy import deepcopy as copy
 
 if __name__ == '__main__':
     columns = 50
@@ -13,6 +13,9 @@ if __name__ == '__main__':
     constant_connection_factor = True
     constant_movement_factor = True
     start_in_center = True
+    vaccination = False
+    vaccination_time = 0
+    vaccination_factors = [0.2, 0.3, 0.4]
 
     if input("Do you want to specify parameters? (y/n)") == "y":
         columns = int(input("Number of columns (int):") or "50")
@@ -25,45 +28,38 @@ if __name__ == '__main__':
         constant_movement_factor = not (input("Do you want non-constant movement between cells? (y/n)") == "y")
         start_in_center = not (input("Start infection in random location? (y/n)") == "y")
 
-    space = Space(columns, rows, eps, vir, 0, 16, homogeneous_population, constant_connection_factor,
-                  constant_movement_factor, start_in_center)
+    if input("Do you want to simulate the effects of vaccination? (y/n)") == "y":
+        vaccination = True
+        vaccination_time = int(input("Timestep when vaccination begins:") or "16")
 
-    space_2 = Space(columns, rows, eps, vir, 0.2, 16, homogeneous_population, constant_connection_factor,
-                    constant_movement_factor, start_in_center)
-
-    space_3 = Space(columns, rows, eps, vir, 0.3, 16, homogeneous_population, constant_connection_factor,
-                    constant_movement_factor, start_in_center)
-
-    space_4 = Space(columns, rows, eps, vir, 0.4, 16, homogeneous_population, constant_connection_factor,
-                    constant_movement_factor, start_in_center)
+    # Always create one space without vaccination
+    spaces: list[Space] = [Space(rows, columns, eps, vir, 0, vaccination_time, constant_connection_factor,
+                                 homogeneous_population, constant_movement_factor, start_in_center)]
 
     for i in range(iterations):
-        space.evolve()
-        space_2.evolve()
-        space_3.evolve()
-        space_4.evolve()
+        if i + 1 == vaccination_time and vaccination:
+            a = [copy(spaces[0]) for i in range(3)]
+            for j in range(3):
+                a[j].set_vaccination_factor(vaccination_factors[j])
+            spaces += a
 
-    if input("Do you want to specify timestamps for graphical output? (y/n)") == "y":
+        for space in spaces:
+            space.evolve()
+
+    if input("Do you want to specify timestamps for cell space overview? (y/n)") == "y":
         output_timestamps = []
         print("Enter 6 integer timestamps:")
         for i in range(6):
             t = int(input())
-            if not 0 <= t <= space.t:
+            if not 0 <= t <= spaces[0].t:
                 print("invalid timestamp")
                 i -= 1
                 continue
             output_timestamps.append(t)
 
-    # space.plot_sir_over_time()
-    # space.plot_state_at_times(output_timestamps)
-    x = range(len(space.infected))
-    mpl_use('MacOSX')
-    plt.cla()
-    plt.plot(x, space.infected, label="0")
-    plt.plot(x, space_2.infected, label="0.2")
-    plt.plot(x, space_3.infected, label="0.4")
-    plt.plot(x, space_4.infected, label="0.6")
-    plt.xlabel("t")
-    plt.ylabel("Number of people")
-    plt.legend()
+    # Just plot the main graphs for the first space in the list to avoid getting too many figures to deal with
+    spaces[0].plot_sir_over_time()
+    spaces[0].plot_state_at_times(output_timestamps)
+    if vaccination:
+        plot_vaccination_results(spaces)
     plt.show()
