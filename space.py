@@ -23,7 +23,7 @@ def get_movement_factor(const: bool) -> list[list[float]]:
         return [[0.5, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0.5]]
     else:
         seed(123)
-        return[[random(), random(), random()], [random(), 0, random()], [random(), random(), random()]]
+        return [[random(), random(), random()], [random(), 0, random()], [random(), random(), random()]]
 
 
 def get_population(j: int, const: bool) -> int:
@@ -34,8 +34,8 @@ def get_population(j: int, const: bool) -> int:
 
 
 class Space:
-    def __init__(self, r: int, c: int, eps: float, virulence: float, const_connection: bool, const_population: bool,
-                 const_movement: bool, start_center: bool):
+    def __init__(self, r: int, c: int, eps: float, virulence: float, vaccination_factor: float, vaccination_time: int,
+                 const_connection: bool, const_population: bool, const_movement: bool, start_center: bool):
         # Defines an r x c grid of cells at time t=0
         self.r = r
         self.c = c
@@ -49,6 +49,8 @@ class Space:
         # Global parameters of the disease being modelled
         self.eps = eps
         self.virulence = virulence
+        self.vaccination_factor = vaccination_factor
+        self.vaccination_time = vaccination_time
 
         # Initialise 2D matrix of cells, setting the central cell to have 30% infected population
         cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
@@ -77,6 +79,9 @@ class Space:
             j = round(random() * c)
             self.cells[i][j].infected = [0.3]
             self.cells[i][j].susceptible = [0.7]
+
+    def set_vaccination_factor(self, factor: float) -> None:
+        self.vaccination_factor = factor
 
     # Returns the Moore neighbourhood of a given cell as a 2D array
     def get_moore_neighbourhood(self, coords: list[int]) -> list[list[any]]:
@@ -131,13 +136,20 @@ class Space:
                 neighbourhood = self.get_moore_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
 
+                # Assume people are infected over being vaccinated as there may be some overlap
                 s_to_i = self.virulence * prev_s * prev_i + prev_s * n
                 if s_to_i > prev_s:
                     s_to_i = prev_s
 
-                s = prev_s - s_to_i
+                s_to_v = 0
+                if self.t + 1 >= self.vaccination_time:
+                    s_to_v = self.vaccination_factor * prev_s
+                    if s_to_v > prev_s - s_to_i:
+                        s_to_v = prev_s - s_to_i
+
+                s = prev_s - s_to_v - s_to_i
                 i = (1 - self.eps) * prev_i + s_to_i
-                r = prev_r + self.eps * prev_i
+                r = prev_r + self.eps * prev_i + s_to_v
 
                 cell.susceptible.append(s)
                 cell.infected.append(i)
@@ -162,27 +174,26 @@ class Space:
         mean_i = i / (self.r * self.c)
         mean_r = 1 - mean_i - mean_s
 
-        self.susceptible.append(mean_s)
-        self.infected.append(mean_i)
-        self.recovered.append(mean_r)
+        self.susceptible.append(round(mean_s * self.population))
+        self.infected.append(round(mean_i * self.population))
+        self.recovered.append(round(mean_r * self.population))
 
     def plot_sir_over_time(self) -> None:
         x = range(len(self.infected))
 
         mpl_use('MacOSX')
-        plt.cla()
+        plt.figure()
         plt.plot(x, self.infected, label="I")
         plt.plot(x, self.susceptible, label="S")
         plt.plot(x, self.recovered, label="R")
         plt.xlabel("t")
-        plt.ylabel("Proportion of population")
+        plt.ylabel("Number of people")
         plt.legend()
         plt.show()
 
     def plot_state_at_times(self, times: list[int]) -> None:
         figure, axis = plt.subplots(2, 3)
         mpl_use('MacOSX')
-        plt.cla()
 
         if len(times) > 6:
             return
@@ -197,3 +208,21 @@ class Space:
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
 
         plt.show()
+
+
+def plot_vaccination_results(s: list[Space]) -> None:
+    plt.figure()
+    x = range(len(s[0].infected))
+    mpl_use('MacOSX')
+    plt.plot(x, s[0].infected, label="0")
+    plt.plot(x, s[1].infected, label="0.2")
+    plt.plot(x, s[2].infected, label="0.3")
+    plt.plot(x, s[3].infected, label="0.4")
+    plt.xlabel("t")
+    plt.ylabel("Number of people")
+    plt.legend()
+
+    for space in s:
+        max_infected = max(space.infected)
+        print(
+            f"Vaccination: {space.vaccination_factor}, max I: {max_infected}, at time T: {space.infected.index(max_infected)}, total infected: {sum(space.infected)}")
