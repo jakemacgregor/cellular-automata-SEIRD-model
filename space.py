@@ -22,7 +22,6 @@ def get_movement_factor(const: bool) -> list[list[float]]:
     if const:
         return [[0.5, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0.5]]
     else:
-        seed(123)
         return [[random(), random(), random()], [random(), 0, random()], [random(), random(), random()]]
 
 
@@ -74,7 +73,6 @@ class Space:
             self.cells[i][j].infected = [0.3]
             self.cells[i][j].susceptible = [0.7]
         else:
-            seed(412)
             i = round(random() * r)
             j = round(random() * c)
             self.cells[i][j].infected = [0.3]
@@ -225,4 +223,5 @@ def plot_vaccination_results(s: list[Space]) -> None:
     for space in s:
         max_infected = max(space.infected)
         print(
-            f"Vaccination: {space.vaccination_factor}, max I: {max_infected}, at time T: {space.infected.index(max_infected)}, total infected: {sum(space.infected)}")
+            f"Vaccination: {space.vaccination_factor}, max I: {max_infected}, at time T: "
+            f"{space.infected.index(max_infected)}, total infected: {sum(space.infected)}")
