@@ -23,6 +23,7 @@ class Cell:
         self.discrete_exposed = []
         self.discrete_infected = []
         self.discrete_recovered = []
+
         self.discretise()
 
     def __str__(self):

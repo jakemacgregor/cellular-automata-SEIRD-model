@@ -45,10 +45,17 @@ class Space:
         self.t = 0
         self.population = 0
 
+        # Total number of people at each timestep
         self.susceptible = []
         self.exposed = []
         self.infected = []
         self.recovered = []
+
+        # Total unique people at each timestep (i.e. change from previous timestep)
+        self.delta_susceptible = [0]
+        self.delta_exposed = [0]
+        self.delta_infected = [0]
+        self.delta_recovered = [0]
 
         # Global parameters of the disease being modelled
         self.sigma = sigma
@@ -78,13 +85,12 @@ class Space:
         if center:
             i = round(r / 2) - 1
             j = round(c / 2) - 1
-            self.cells[i][j].exposed = [0.3]
-            self.cells[i][j].susceptible = [0.7]
         else:
             i = round(random() * r)
             j = round(random() * c)
-            self.cells[i][j].exposed = [0.3]
-            self.cells[i][j].susceptible = [0.7]
+
+        self.cells[i][j].susceptible = [0.7]
+        self.cells[i][j].exposed = [0.3]
 
     def set_vaccination_factor(self, factor: float) -> None:
         self.vaccination_factor = factor
@@ -167,6 +173,7 @@ class Space:
                 cell.discretise()
 
         self.update_current_state()
+        self.update_delta_values()
         self.t += 1
 
     def update_current_state(self) -> None:
@@ -192,21 +199,48 @@ class Space:
         self.infected.append(round(mean_i * self.population))
         self.recovered.append(round(mean_r * self.population))
 
+    def update_delta_values(self) -> None:
+        s, e, i, r = self.susceptible[-1], self.exposed[-1], self.infected[-1], self.recovered[-1]
+        prev_s, prev_e, prev_i, prev_r = self.susceptible[-2], self.exposed[-2], self.infected[-2], self.recovered[-2]
+
+        self.delta_susceptible.append((s - prev_s))
+        self.delta_exposed.append((e - prev_e))
+        self.delta_infected.append((i - prev_i))
+        self.delta_recovered.append((r - prev_r))
+
+    # plot_sir_over_time and plot_delta_sir_over_time have identical code but must be kept separate for matplotlib
+    # to work as intended
     def plot_sir_over_time(self) -> None:
         x = range(len(self.infected))
 
         mpl_use('MacOSX')
         plt.figure()
-        plt.plot(x, self.exposed, label="E")
         plt.plot(x, self.infected, label="I")
         plt.plot(x, self.susceptible, label="S")
         plt.plot(x, self.recovered, label="R")
+        plt.plot(x, self.exposed, label="E")
         plt.xlabel("t")
         plt.ylabel("Number of people")
         plt.legend()
         plt.show()
 
-    def plot_state_at_times(self, times: list[int]) -> None:
+    def plot_delta_sir_over_time(self) -> None:
+        x = range(len(self.infected))
+
+        mpl_use('MacOSX')
+        plt.figure()
+        plt.plot(x, self.delta_infected, label="I")
+        plt.plot(x, self.delta_susceptible, label="S")
+        plt.plot(x, self.delta_recovered, label="R")
+        plt.plot(x, self.delta_exposed, label="E")
+        plt.xlabel("t")
+        plt.ylabel("Number of people")
+        plt.legend()
+        plt.show()
+
+    # As above, plot_infected_state_at_times and plot_exposed_state_at_times must be kept separate in order to generate
+    # two separate graphs
+    def plot_infected_state_at_times(self, times: list[int]) -> None:
         figure, axis = plt.subplots(2, 3)
         mpl_use('MacOSX')
 
@@ -219,6 +253,24 @@ class Space:
                 row = []
                 for c in range(self.c):
                     row.append(self.cells[r][c].discrete_infected[t])
+                i.append(row)
+            axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
+
+        plt.show()
+
+    def plot_exposed_state_at_times(self, times: list[int]) -> None:
+        figure, axis = plt.subplots(2, 3)
+        mpl_use('MacOSX')
+
+        if len(times) > 6:
+            return
+
+        for t in times:
+            i = []
+            for r in range(self.r):
+                row = []
+                for c in range(self.c):
+                    row.append(self.cells[r][c].discrete_exposed[t])
                 i.append(row)
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
 
@@ -245,11 +297,12 @@ def plot_vaccination_results(s: list[Space]) -> None:
 
 
 def write_to_csv(s: Space) -> None:
-    header = ['timestep', 'susceptible', 'exposed', 'infected', 'recovered']
+    header = ['t', 's', 'ds', 'e', 'de', 'i', 'di', 'r', 'dr']
 
     data = []
     for i in range(s.t):
-        row = [f"{i}", f"{s.susceptible[i]}", f"{s.exposed[i]}", f"{s.infected[i]}", f"{s.recovered[i]}"]
+        row = [f"{i}", f"{s.susceptible[i]}", f"{s.delta_susceptible[i]}", f"{s.exposed[i]}", f"{s.delta_exposed[i]}",
+               f"{s.infected[i]}", f"{s.delta_infected[i]}", f"{s.recovered[i]}"]
         data.append(row)
 
     dt = datetime.now().strftime("%Y-%m-%d %H;%M;%S")

@@ -5,7 +5,7 @@ from copy import deepcopy as copy
 if __name__ == '__main__':
     columns = 50
     rows = 50
-    sigma = 0.8
+    sigma = 0.4
     eps = 0.4
     vir = 0.6
     iterations = 50
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     if input("Do you want to specify parameters? (y/n)") == "y":
         columns = int(input("Number of columns (int):") or "50")
         rows = int(input("Number of rows (int):") or "50")
-        sigma = float(input("Sigma value (float):") or "0.8")
+        sigma = float(input("Sigma value (float):") or "0.4")
         eps = float(input("Epsilon value (float):") or "0.4")
         vir = float(input("Virulence (float):") or "0.6")
         iterations = int(input("Number of iterations (int):") or "50")
@@ -61,7 +61,9 @@ if __name__ == '__main__':
 
     # Just plot the main graphs for the first space in the list to avoid getting too many figures to deal with
     spaces[0].plot_sir_over_time()
-    spaces[0].plot_state_at_times(output_timestamps)
+    spaces[0].plot_delta_sir_over_time()
+    spaces[0].plot_infected_state_at_times(output_timestamps)
+    spaces[0].plot_exposed_state_at_times(output_timestamps)
     if vaccination:
         plot_vaccination_results(spaces)
     plt.show()
