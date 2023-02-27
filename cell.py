@@ -1,6 +1,6 @@
 class Cell:
     def __init__(self, coords: list[int], population: int, connection: list[list[float]], movement: list[list[float]],
-                 susceptible: float, infected: float, recovered: float):
+                 susceptible: float, exposed: float, infected: float, recovered: float):
         # Co-ords are an array [i, j] where the cell is in position [i, j] in cell space
         self.coords = tuple(coords)
         self.population = population
@@ -15,16 +15,18 @@ class Cell:
         # Discretised so that there is a finite number of states: (0.00, 0.01, 0.02, ..., 0.99, 1.00)
         # Stored as a list --> susceptible[t] = susceptible population at time step t
         self.susceptible = [susceptible]
+        self.exposed = [exposed]
         self.infected = [infected]
         self.recovered = [recovered]
 
         self.discrete_susceptible = []
+        self.discrete_exposed = []
         self.discrete_infected = []
         self.discrete_recovered = []
         self.discretise()
 
     def __str__(self):
-        return f"S: {self.susceptible[-1]}, I: {self.infected[-1]}, R: {self.recovered[-1]}"
+        return f"S: {self.susceptible[-1]}, E:{self.exposed[-1]} I: {self.infected[-1]}, R: {self.recovered[-1]}"
 
     def get_connection_factor(self, a: int, b: int) -> float:
         return self.connection[a][b]
@@ -34,6 +36,8 @@ class Cell:
 
     def discretise(self):
         self.discrete_susceptible.append(round(self.susceptible[-1] * 100) / 100)
+        self.discrete_exposed.append(round(self.exposed[-1] * 100) / 100)
         self.discrete_infected.append(round(self.infected[-1] * 100) / 100)
-        self.discrete_recovered.append(round(self.recovered[-1] * 100) / 100)
+        self.discrete_recovered.append(1 - self.discrete_susceptible[-1] - self.discrete_exposed[-1]
+                                       - self.discrete_infected[-1])
         return

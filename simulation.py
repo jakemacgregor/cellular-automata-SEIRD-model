@@ -1,10 +1,11 @@
-from space import Space, plot_vaccination_results
+from space import Space, plot_vaccination_results, write_to_csv
 from matplotlib import pyplot as plt
 from copy import deepcopy as copy
 
 if __name__ == '__main__':
     columns = 50
     rows = 50
+    sigma = 0.8
     eps = 0.4
     vir = 0.6
     iterations = 50
@@ -20,6 +21,7 @@ if __name__ == '__main__':
     if input("Do you want to specify parameters? (y/n)") == "y":
         columns = int(input("Number of columns (int):") or "50")
         rows = int(input("Number of rows (int):") or "50")
+        sigma = float(input("Sigma value (float):") or "0.8")
         eps = float(input("Epsilon value (float):") or "0.4")
         vir = float(input("Virulence (float):") or "0.6")
         iterations = int(input("Number of iterations (int):") or "50")
@@ -33,7 +35,7 @@ if __name__ == '__main__':
         vaccination_time = int(input("Timestep when vaccination begins:") or "16")
 
     # Always create one space without vaccination
-    spaces: list[Space] = [Space(rows, columns, eps, vir, 0, vaccination_time, constant_connection_factor,
+    spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, 0, vaccination_time, constant_connection_factor,
                                  homogeneous_population, constant_movement_factor, start_in_center)]
 
     for i in range(iterations):
@@ -63,3 +65,4 @@ if __name__ == '__main__':
     if vaccination:
         plot_vaccination_results(spaces)
     plt.show()
+    write_to_csv(spaces[0])
