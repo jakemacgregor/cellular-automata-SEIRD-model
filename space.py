@@ -37,8 +37,10 @@ def get_population(j: int, const: bool) -> int:
 
 class Space:
     def __init__(self, r: int, c: int, sigma: float, eps: float, virulence: float, vaccination_factor: float,
-                 vaccination_time: int, i_quarantine_factor: float, i_quarantine_trigger: float, e_quarantine_factor: float, e_quarantine_trigger: float, const_connection: bool,
-                 const_population: bool, const_movement: bool, start_center: bool):
+                 vaccination_time: int, i_quarantine_factor: float, i_quarantine_trigger: float,
+                 e_quarantine_factor: float, e_quarantine_trigger: float, lockdown_trigger: float, unlock_trigger: float
+                 , const_connection: bool, const_population: bool, const_movement: bool, start_center: bool):
+
         # Defines an r x c grid of cells at time t=0
         self.r = r
         self.c = c
@@ -71,6 +73,9 @@ class Space:
         self.e_quarantine_factor = e_quarantine_factor
         self.e_quarantine_trigger = e_quarantine_trigger
         self.e_quarantining_active = 0
+        self.lockdown_trigger = lockdown_trigger
+        self.unlock_trigger = unlock_trigger
+        self.lockdown_active = 0
 
         # Initialise 2D matrix of cells, setting the central cell to have 30% infected population
         cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
@@ -140,8 +145,12 @@ class Space:
                 if neighbour is None:
                     continue
 
-                c = cell.get_connection_factor(row, col)
-                m = cell.get_movement_factor(row, col)
+                if self.lockdown_active:
+                    c = 0.1
+                    m = 0.1
+                else:
+                    c = cell.get_connection_factor(row, col)
+                    m = cell.get_movement_factor(row, col)
 
                 infected = neighbour.infected[self.t]
                 if self.i_quarantining_active:
@@ -224,6 +233,11 @@ class Space:
 
         if mean_i >= self.e_quarantine_trigger:
             self.e_quarantining_active = 1
+
+        if mean_i >= self.lockdown_trigger:
+            self.lockdown_active = 1
+        if mean_i <= self.unlock_trigger:
+            self.lockdown_active = 0
 
         self.susceptible.append(round(mean_s * self.population))
         self.exposed.append(round(mean_e * self.population))
