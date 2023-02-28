@@ -17,8 +17,11 @@ if __name__ == '__main__':
     vaccination = False
     vaccination_time = 0
     vaccination_factors = [0.2, 0.3, 0.4]
+
     i_quarantine_factor = 0.0
     i_quarantine_trigger = 0.0
+    e_quarantine_factor = 0.0
+    e_quarantine_trigger = 0.0
 
     if input("Do you want to specify parameters? (y/n)") == "y":
         columns = int(input("Number of columns (int):") or "50")
@@ -39,10 +42,12 @@ if __name__ == '__main__':
     if input("Do you want to simulate the effects of NPIs? (y/n)") == "y":
         i_quarantine_factor = float(input("Success rate of quarantining infected people (float):") or "0.98")
         i_quarantine_trigger = float(input("What % infected before quarantining infected people (float):") or "0.005")
+        e_quarantine_factor = float(input("Success rate of asymptomatic quarantine (float):") or "0.2")
+        e_quarantine_trigger = float(input("What % infected before asymptomatic quarantine (float):") or "0.01")
 
     # Always create one space without vaccination
     spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, 0, vaccination_time, i_quarantine_factor,
-                                 i_quarantine_trigger, constant_connection_factor, homogeneous_population,
+                                 i_quarantine_trigger, e_quarantine_factor, e_quarantine_trigger, constant_connection_factor, homogeneous_population,
                                  constant_movement_factor, start_in_center)]
 
     for i in range(iterations):
