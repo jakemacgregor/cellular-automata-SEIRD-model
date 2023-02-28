@@ -4,6 +4,8 @@ class Cell:
         # Co-ords are an array [i, j] where the cell is in position [i, j] in cell space
         self.coords = tuple(coords)
         self.population = population
+        self.empty = population == 0
+
 
         # Nested array representing the neighbourhood for a cell of the form:
         # [[NW,N,NE],[W,X,E],[SW,S,SE]] (compass directions)
@@ -14,10 +16,16 @@ class Cell:
         # Proportions of population of the cell who are susceptible, infected, or recovered
         # Discretised so that there is a finite number of states: (0.00, 0.01, 0.02, ..., 0.99, 1.00)
         # Stored as a list --> susceptible[t] = susceptible population at time step t
-        self.susceptible = [susceptible]
-        self.exposed = [exposed]
-        self.infected = [infected]
-        self.recovered = [recovered]
+        if not self.empty:
+            self.susceptible = [susceptible]
+            self.exposed = [exposed]
+            self.infected = [infected]
+            self.recovered = [recovered]
+        if self.empty:
+            self.susceptible = [0.0]
+            self.exposed = [0.0]
+            self.infected = [0.0]
+            self.recovered = [0.0]
 
         self.discrete_susceptible = []
         self.discrete_exposed = []
@@ -36,6 +44,12 @@ class Cell:
         return self.movement[a][b]
 
     def discretise(self):
+        if self.empty:
+            self.discrete_susceptible.append(0)
+            self.discrete_exposed.append(0)
+            self.discrete_infected.append(0)
+            self.discrete_recovered.append(0)
+
         self.discrete_susceptible.append(round(self.susceptible[-1] * 100) / 100)
         self.discrete_exposed.append(round(self.exposed[-1] * 100) / 100)
         self.discrete_infected.append(round(self.infected[-1] * 100) / 100)

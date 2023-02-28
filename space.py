@@ -1,5 +1,5 @@
 import csv
-
+import numpy as np
 from datetime import datetime
 from cell import Cell
 from matplotlib import pyplot as plt
@@ -33,6 +33,13 @@ def get_population(j: int, const: bool) -> int:
         return 100
     else:
         return round(pow(1.17, j) * 10)
+
+
+def get_pop_uk(i, j, uk):
+    n = uk[i][j]
+    if n == -1:
+        return 0
+    return n
 
 
 class Space:
@@ -77,14 +84,19 @@ class Space:
         self.unlock_trigger = unlock_trigger
         self.lockdown_active = 0
 
+        uk = np.loadtxt("UK_population.asc", skiprows=6)
+
         # Initialise 2D matrix of cells, setting the central cell to have 30% infected population
-        cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
+        cells = [[Cell([i, j], get_pop_uk(i,j,uk), get_connection_factor(i, j, const_connection),
                        get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0, recovered=0.0)
                   for j in range(c)] for i in range(r)]
 
+        self.nonempty_cells = 0
         for row in cells:
             for cell in row:
                 self.population += cell.population
+                if not cell.empty:
+                    self.nonempty_cells += 1
 
         self.cells = cells
         self.start_infection(r, c, start_center)
@@ -102,6 +114,8 @@ class Space:
             i = round(random() * r)
             j = round(random() * c)
 
+        if self.cells[i][j].empty:
+            self.start_infection(r, c, False)
         self.cells[i][j].susceptible = [0.7]
         self.cells[i][j].exposed = [0.3]
 
@@ -168,6 +182,14 @@ class Space:
     def evolve(self) -> None:
         for r in self.cells:
             for cell in r:
+                if cell.empty:
+                    cell.susceptible.append(0)
+                    cell.exposed.append(0)
+                    cell.infected.append(0)
+                    cell.recovered.append(0)
+                    cell.discretise()
+                    continue
+
                 prev_s = cell.susceptible[self.t]
                 prev_e = cell.exposed[self.t]
                 prev_i = cell.infected[self.t]
@@ -218,14 +240,16 @@ class Space:
 
         for row in range(self.r):
             for col in range(self.c):
+                if self.cells[row][col].empty:
+                    continue
                 s += self.cells[row][col].susceptible[-1]
                 e += self.cells[row][col].exposed[-1]
                 i += self.cells[row][col].infected[-1]
                 r += self.cells[row][col].recovered[-1]
 
-        mean_s = s / (self.r * self.c)
-        mean_e = e / (self.r * self.c)
-        mean_i = i / (self.r * self.c)
+        mean_s = s / self.nonempty_cells
+        mean_e = e / self.nonempty_cells
+        mean_i = i / self.nonempty_cells
         mean_r = 1 - mean_e - mean_i - mean_s
 
         if mean_i >= self.i_quarantine_trigger:
