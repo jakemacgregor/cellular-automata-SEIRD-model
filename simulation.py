@@ -5,7 +5,7 @@ from copy import deepcopy as copy
 if __name__ == '__main__':
     columns = 50
     rows = 50
-    sigma = 0.4
+    sigma = 0.6
     eps = 0.4
     vir = 0.6
     iterations = 50
@@ -17,11 +17,13 @@ if __name__ == '__main__':
     vaccination = False
     vaccination_time = 0
     vaccination_factors = [0.2, 0.3, 0.4]
+    i_quarantine_factor = 0.0
+    i_quarantine_trigger = 0.0
 
     if input("Do you want to specify parameters? (y/n)") == "y":
         columns = int(input("Number of columns (int):") or "50")
         rows = int(input("Number of rows (int):") or "50")
-        sigma = float(input("Sigma value (float):") or "0.4")
+        sigma = float(input("Sigma value (float):") or "0.6")
         eps = float(input("Epsilon value (float):") or "0.4")
         vir = float(input("Virulence (float):") or "0.6")
         iterations = int(input("Number of iterations (int):") or "50")
@@ -34,9 +36,14 @@ if __name__ == '__main__':
         vaccination = True
         vaccination_time = int(input("Timestep when vaccination begins:") or "16")
 
+    if input("Do you want to simulate the effects of NPIs? (y/n)") == "y":
+        i_quarantine_factor = float(input("Success rate of quarantining infected people (float):") or "0.98")
+        i_quarantine_trigger = float(input("What % infected before quarantining infected people (float):") or "0.005")
+
     # Always create one space without vaccination
-    spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, 0, vaccination_time, constant_connection_factor,
-                                 homogeneous_population, constant_movement_factor, start_in_center)]
+    spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, 0, vaccination_time, i_quarantine_factor,
+                                 i_quarantine_trigger, constant_connection_factor, homogeneous_population,
+                                 constant_movement_factor, start_in_center)]
 
     for i in range(iterations):
         if i + 1 == vaccination_time and vaccination:

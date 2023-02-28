@@ -37,8 +37,8 @@ def get_population(j: int, const: bool) -> int:
 
 class Space:
     def __init__(self, r: int, c: int, sigma: float, eps: float, virulence: float, vaccination_factor: float,
-                 vaccination_time: int, const_connection: bool, const_population: bool, const_movement: bool,
-                 start_center: bool):
+                 vaccination_time: int, quarantine_factor: float, quarantine_trigger: float, const_connection: bool,
+                 const_population: bool, const_movement: bool, start_center: bool):
         # Defines an r x c grid of cells at time t=0
         self.r = r
         self.c = c
@@ -63,6 +63,11 @@ class Space:
         self.virulence = virulence
         self.vaccination_factor = vaccination_factor
         self.vaccination_time = vaccination_time
+
+        # NPIs
+        self.quarantine_factor = quarantine_factor
+        self.quarantine_trigger = quarantine_trigger
+        self.quarantining_active = 0
 
         # Initialise 2D matrix of cells, setting the central cell to have 30% infected population
         cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
@@ -134,8 +139,13 @@ class Space:
 
                 c = cell.get_connection_factor(row, col)
                 m = cell.get_movement_factor(row, col)
+
+                infected = neighbour.infected[self.t]
+                if self.quarantining_active:
+                    infected = (1-self.quarantine_factor) * infected
+
                 total += (neighbour.population / cell.population) * c * m * self.virulence * \
-                         (neighbour.exposed[self.t] + neighbour.infected[self.t])
+                         (neighbour.exposed[self.t] + infected)
 
         return total
 
@@ -150,8 +160,12 @@ class Space:
                 neighbourhood = self.get_moore_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
 
+                infected_minus_quarantine = prev_i
+                if self.quarantining_active:
+                    infected_minus_quarantine = prev_i * (1-self.quarantine_factor)
+
                 # Assume people are infected over being vaccinated as there may be some overlap
-                s_to_e = self.virulence * prev_s * (prev_i + prev_e) + prev_s * n
+                s_to_e = self.virulence * prev_s * (infected_minus_quarantine + prev_e) + prev_s * n
                 if s_to_e > prev_s:
                     s_to_e = prev_s
 
@@ -193,6 +207,9 @@ class Space:
         mean_e = e / (self.r * self.c)
         mean_i = i / (self.r * self.c)
         mean_r = 1 - mean_e - mean_i - mean_s
+
+        if mean_i >= self.quarantine_trigger:
+            self.quarantining_active = 1
 
         self.susceptible.append(round(mean_s * self.population))
         self.exposed.append(round(mean_e * self.population))
@@ -302,7 +319,7 @@ def write_to_csv(s: Space) -> None:
     data = []
     for i in range(s.t):
         row = [f"{i}", f"{s.susceptible[i]}", f"{s.delta_susceptible[i]}", f"{s.exposed[i]}", f"{s.delta_exposed[i]}",
-               f"{s.infected[i]}", f"{s.delta_infected[i]}", f"{s.recovered[i]}"]
+               f"{s.infected[i]}", f"{s.delta_infected[i]}", f"{s.recovered[i]}", f"{s.delta_recovered[i]}"]
         data.append(row)
 
     dt = datetime.now().strftime("%Y-%m-%d %H;%M;%S")
