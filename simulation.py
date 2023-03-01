@@ -26,8 +26,8 @@ if __name__ == '__main__':
     unlock_trigger = 0.0
 
     if input("Do you want to specify parameters? (y/n)") == "y":
-        columns = int(input("Number of columns (int):") or "50")
-        rows = int(input("Number of rows (int):") or "50")
+        columns = int(input("Number of columns (int):") or "163")
+        rows = int(input("Number of rows (int):") or "173")
         sigma = float(input("Sigma value (float):") or "0.6")
         eps = float(input("Epsilon value (float):") or "0.4")
         vir = float(input("Virulence (float):") or "0.6")

@@ -22,10 +22,10 @@ class Cell:
             self.infected = [infected]
             self.recovered = [recovered]
         if self.empty:
-            self.susceptible = [0.0]
-            self.exposed = [0.0]
-            self.infected = [0.0]
-            self.recovered = [0.0]
+            self.susceptible = []
+            self.exposed = []
+            self.infected = []
+            self.recovered = []
 
         self.discrete_susceptible = []
         self.discrete_exposed = []
@@ -35,6 +35,8 @@ class Cell:
         self.discretise()
 
     def __str__(self):
+        if self.empty:
+            return f"Empty cell"
         return f"S: {self.susceptible[-1]}, E:{self.exposed[-1]} I: {self.infected[-1]}, R: {self.recovered[-1]}"
 
     def get_connection_factor(self, a: int, b: int) -> float:
@@ -45,10 +47,11 @@ class Cell:
 
     def discretise(self):
         if self.empty:
-            self.discrete_susceptible.append(0)
-            self.discrete_exposed.append(0)
-            self.discrete_infected.append(0)
-            self.discrete_recovered.append(0)
+            return
+            # self.discrete_susceptible.append(0)
+            # self.discrete_exposed.append(0)
+            # self.discrete_infected.append(0)
+            # self.discrete_recovered.append(0)
 
         self.discrete_susceptible.append(round(self.susceptible[-1] * 100) / 100)
         self.discrete_exposed.append(round(self.exposed[-1] * 100) / 100)

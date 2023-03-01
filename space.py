@@ -36,10 +36,15 @@ def get_population(j: int, const: bool) -> int:
 
 
 def get_pop_uk(i, j, uk):
-    n = uk[i][j]
-    if n == -1:
+    population = 0
+
+    for r in range(i*7,(i+1)*7):
+        for c in range(j*4, (j+1)*4):
+            population += uk[r][c]
+
+    if population <= -1:
         return 0
-    return n
+    return population
 
 
 class Space:
@@ -114,10 +119,26 @@ class Space:
             i = round(random() * r)
             j = round(random() * c)
 
-        if self.cells[i][j].empty:
+        cell = self.cells[i][j]
+        if cell.empty and not center:
+            self.start_infection(r, c, center)
+            return
+
+        cell.susceptible = [0.7]
+        cell.exposed = [0.3]
+
+    def start_infection_uk(self, r:int, c:int, center:bool) -> None:
+        i = round(random() * r)
+        j = round(random() * c)
+
+        cell = self.cells[i][j]
+        if cell.empty or cell.population < 200:
             self.start_infection(r, c, False)
-        self.cells[i][j].susceptible = [0.7]
-        self.cells[i][j].exposed = [0.3]
+            return
+
+        cell.susceptible = [0.7]
+        cell.exposed = [0.3]
+
 
     def set_vaccination_factor(self, factor: float) -> None:
         self.vaccination_factor = factor
@@ -159,6 +180,9 @@ class Space:
                 if neighbour is None:
                     continue
 
+                if neighbour.empty:
+                    continue
+
                 if self.lockdown_active:
                     c = 0.1
                     m = 0.1
@@ -183,11 +207,11 @@ class Space:
         for r in self.cells:
             for cell in r:
                 if cell.empty:
-                    cell.susceptible.append(0)
-                    cell.exposed.append(0)
-                    cell.infected.append(0)
-                    cell.recovered.append(0)
-                    cell.discretise()
+                    # cell.susceptible.append(0)
+                    # cell.exposed.append(0)
+                    # cell.infected.append(0)
+                    # cell.recovered.append(0)
+                    # cell.discretise()
                     continue
 
                 prev_s = cell.susceptible[self.t]
@@ -321,7 +345,11 @@ class Space:
             for r in range(self.r):
                 row = []
                 for c in range(self.c):
-                    row.append(self.cells[r][c].discrete_infected[t])
+                    cell = self.cells[r][c]
+                    if cell.empty:
+                        row.append(0)
+                    else:
+                        row.append(cell.discrete_infected[t])
                 i.append(row)
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
 
@@ -339,7 +367,11 @@ class Space:
             for r in range(self.r):
                 row = []
                 for c in range(self.c):
-                    row.append(self.cells[r][c].discrete_exposed[t])
+                    cell = self.cells[r][c]
+                    if cell.empty:
+                        row.append(0)
+                    else:
+                        row.append(cell.discrete_exposed[t])
                 i.append(row)
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
 
