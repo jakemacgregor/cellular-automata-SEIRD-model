@@ -25,17 +25,34 @@ if __name__ == '__main__':
     lockdown_trigger = 0.0
     unlock_trigger = 0.0
 
+    # ENUM:
+    uk_fast = False
+    uk_slow = False
+
+    if input("Use UK population data? (y/n)") == "y":
+        columns = 109
+        rows = 101
+        uk_fast = True
+
+        if input("Full 173 x 163 run? (y/n)") == "y":
+            uk_slow = True
+            uk_fast = False
+            columns = 163
+            rows = 173
+
     if input("Do you want to specify parameters? (y/n)") == "y":
-        columns = int(input("Number of columns (int):") or "163")
-        rows = int(input("Number of rows (int):") or "173")
+        if not (uk_fast or uk_slow):
+            columns = int(input("Number of columns (int):") or "50")
+            rows = int(input("Number of rows (int):") or "50")
         sigma = float(input("Sigma value (float):") or "0.6")
         eps = float(input("Epsilon value (float):") or "0.4")
         vir = float(input("Virulence (float):") or "0.6")
         iterations = int(input("Number of iterations (int):") or "50")
-        homogeneous_population = not (input("Do you want inhomogeneous population distribution? (y/n)") == "y")
+        if not (uk_fast or uk_slow):
+            start_in_center = not (input("Start infection in random location? (y/n)") == "y")
+            homogeneous_population = not (input("Do you want inhomogeneous population distribution? (y/n)") == "y")
         constant_connection_factor = not (input("Do you want non-constant connections between cells? (y/n)") == "y")
         constant_movement_factor = not (input("Do you want non-constant movement between cells? (y/n)") == "y")
-        start_in_center = not (input("Start infection in random location? (y/n)") == "y")
 
     if input("Do you want to simulate the effects of vaccination? (y/n)") == "y":
         vaccination = True
@@ -53,7 +70,7 @@ if __name__ == '__main__':
     spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, 0, vaccination_time, i_quarantine_factor,
                                  i_quarantine_trigger, e_quarantine_factor, e_quarantine_trigger, lockdown_trigger,
                                  unlock_trigger, constant_connection_factor, homogeneous_population,
-                                 constant_movement_factor, start_in_center)]
+                                 constant_movement_factor, start_in_center, uk_fast, uk_slow)]
 
     for i in range(iterations):
         if i + 1 == vaccination_time and vaccination:

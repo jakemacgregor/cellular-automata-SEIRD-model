@@ -35,15 +35,27 @@ def get_population(j: int, const: bool) -> int:
         return round(pow(1.17, j) * 10)
 
 
-def get_pop_uk(i, j, uk):
+def get_pop_uk(i, j, uk, fast):
     population = 0
 
-    for r in range(i*7,(i+1)*7):
-        for c in range(j*4, (j+1)*4):
+    if fast:
+        rows = 12
+        columns = 6
+    else:
+        rows = 7
+        columns = 4
+
+    for r in range(i * rows, (i + 1) * rows):
+        if r > 1210:
+            continue
+        for c in range(j * columns, (j + 1) * columns):
+            if c > 651:
+                continue
             population += uk[r][c]
 
     if population <= -1:
         return 0
+
     return population
 
 
@@ -51,7 +63,7 @@ class Space:
     def __init__(self, r: int, c: int, sigma: float, eps: float, virulence: float, vaccination_factor: float,
                  vaccination_time: int, i_quarantine_factor: float, i_quarantine_trigger: float,
                  e_quarantine_factor: float, e_quarantine_trigger: float, lockdown_trigger: float, unlock_trigger: float
-                 , const_connection: bool, const_population: bool, const_movement: bool, start_center: bool):
+                 , const_connection: bool, const_population: bool, const_movement: bool, start_center: bool, uk_fast: bool, uk_slow: bool):
 
         # Defines an r x c grid of cells at time t=0
         self.r = r
@@ -89,12 +101,18 @@ class Space:
         self.unlock_trigger = unlock_trigger
         self.lockdown_active = 0
 
-        uk = np.loadtxt("UK_population.asc", skiprows=6)
-
         # Initialise 2D matrix of cells, setting the central cell to have 30% infected population
-        cells = [[Cell([i, j], get_pop_uk(i,j,uk), get_connection_factor(i, j, const_connection),
-                       get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0, recovered=0.0)
-                  for j in range(c)] for i in range(r)]
+        if uk_fast:
+            data = np.loadtxt("UK_population.asc", skiprows=6)
+            cells = [[Cell([i, j], get_pop_uk(i, j, data, uk_fast), get_connection_factor(i, j, const_connection),
+                           get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
+                           recovered=0.0)
+                      for j in range(c)] for i in range(r)]
+        else:
+            cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
+                           get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
+                           recovered=0.0)
+                      for j in range(c)] for i in range(r)]
 
         self.nonempty_cells = 0
         for row in cells:
@@ -104,7 +122,12 @@ class Space:
                     self.nonempty_cells += 1
 
         self.cells = cells
-        self.start_infection(r, c, start_center)
+
+        if uk_fast or uk_slow:
+            for i in range(5):
+                self.start_infection_uk(r, c)
+        else:
+            self.start_infection(r, c, start_center)
         self.update_current_state()
 
     def __str__(self):
@@ -127,18 +150,17 @@ class Space:
         cell.susceptible = [0.7]
         cell.exposed = [0.3]
 
-    def start_infection_uk(self, r:int, c:int, center:bool) -> None:
+    def start_infection_uk(self, r: int, c: int) -> None:
         i = round(random() * r)
         j = round(random() * c)
 
         cell = self.cells[i][j]
         if cell.empty or cell.population < 200:
-            self.start_infection(r, c, False)
+            self.start_infection_uk(r, c)
             return
 
         cell.susceptible = [0.7]
         cell.exposed = [0.3]
-
 
     def set_vaccination_factor(self, factor: float) -> None:
         self.vaccination_factor = factor
