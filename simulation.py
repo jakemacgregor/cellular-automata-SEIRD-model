@@ -82,6 +82,8 @@ if __name__ == '__main__':
         for space in spaces:
             space.evolve()
 
+    write_to_csv(spaces[0])
+
     if input("Do you want to specify timestamps for cell space overview? (y/n)") == "y":
         output_timestamps = []
         print("Enter 6 integer timestamps:")
@@ -101,4 +103,3 @@ if __name__ == '__main__':
     if vaccination:
         plot_vaccination_results(spaces)
     plt.show()
-    write_to_csv(spaces[0])

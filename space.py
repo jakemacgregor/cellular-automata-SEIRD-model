@@ -1,4 +1,6 @@
 import csv
+import math
+
 import numpy as np
 from datetime import datetime
 from cell import Cell
@@ -53,7 +55,7 @@ def get_pop_uk(i, j, uk, fast):
                 continue
             population += uk[r][c]
 
-    if population <= -1:
+    if population <= 0:
         return 0
 
     return population
@@ -102,7 +104,7 @@ class Space:
         self.lockdown_active = 0
 
         # Initialise 2D matrix of cells, setting the central cell to have 30% infected population
-        if uk_fast:
+        if uk_fast or uk_slow:
             data = np.loadtxt("UK_population.asc", skiprows=6)
             cells = [[Cell([i, j], get_pop_uk(i, j, data, uk_fast), get_connection_factor(i, j, const_connection),
                            get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
@@ -124,7 +126,7 @@ class Space:
         self.cells = cells
 
         if uk_fast or uk_slow:
-            for i in range(5):
+            for i in range(20):
                 self.start_infection_uk(r, c)
         else:
             self.start_infection(r, c, start_center)
@@ -139,8 +141,8 @@ class Space:
             i = round(r / 2) - 1
             j = round(c / 2) - 1
         else:
-            i = round(random() * r)
-            j = round(random() * c)
+            i = math.floor(random() * r)
+            j = math.floor(random() * c)
 
         cell = self.cells[i][j]
         if cell.empty and not center:
@@ -151,11 +153,11 @@ class Space:
         cell.exposed = [0.3]
 
     def start_infection_uk(self, r: int, c: int) -> None:
-        i = round(random() * r)
-        j = round(random() * c)
+        i = math.floor(random() * r)
+        j = math.floor(random() * c)
 
         cell = self.cells[i][j]
-        if cell.empty or cell.population < 200:
+        if cell.empty or cell.population < 300:
             self.start_infection_uk(r, c)
             return
 
