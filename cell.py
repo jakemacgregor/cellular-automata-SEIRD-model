@@ -48,10 +48,6 @@ class Cell:
     def discretise(self):
         if self.empty:
             return
-            # self.discrete_susceptible.append(0)
-            # self.discrete_exposed.append(0)
-            # self.discrete_infected.append(0)
-            # self.discrete_recovered.append(0)
 
         self.discrete_susceptible.append(round(self.susceptible[-1] * 100) / 100)
         self.discrete_exposed.append(round(self.exposed[-1] * 100) / 100)
