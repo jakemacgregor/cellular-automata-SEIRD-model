@@ -22,7 +22,7 @@ if __name__ == '__main__':
     i_quarantine_trigger = 0.0
     e_quarantine_factor = 0.0
     e_quarantine_trigger = 0.0
-    lockdown_trigger = 0.0
+    lockdown_trigger = 1.0
     unlock_trigger = 0.0
 
     # ENUM:

@@ -55,9 +55,6 @@ def get_pop_uk(i, j, uk, fast):
                 continue
             population += uk[r][c]
 
-    if population <= 0:
-        return 0
-
     return population
 
 
@@ -126,7 +123,7 @@ class Space:
         self.cells = cells
 
         if uk_fast or uk_slow:
-            for i in range(20):
+            for i in range(15):
                 self.start_infection_uk(r, c)
         else:
             self.start_infection(r, c, start_center)
@@ -157,7 +154,7 @@ class Space:
         j = math.floor(random() * c)
 
         cell = self.cells[i][j]
-        if cell.empty or cell.population < 300:
+        if cell.empty or cell.population < 100 or not cell.susceptible[0] == 1.0:
             self.start_infection_uk(r, c)
             return
 
@@ -231,11 +228,6 @@ class Space:
         for r in self.cells:
             for cell in r:
                 if cell.empty:
-                    # cell.susceptible.append(0)
-                    # cell.exposed.append(0)
-                    # cell.infected.append(0)
-                    # cell.recovered.append(0)
-                    # cell.discretise()
                     continue
 
                 prev_s = cell.susceptible[self.t]
