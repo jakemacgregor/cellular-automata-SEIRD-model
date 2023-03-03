@@ -1,5 +1,7 @@
 import csv
+import math
 
+import numpy as np
 from datetime import datetime
 from cell import Cell
 from matplotlib import pyplot as plt
@@ -9,6 +11,14 @@ from random import random
 
 
 def get_connection_factor(i: int, j: int, const: bool) -> list[list[float]]:
+    """
+    Return the connection factors for a particular cell based on predetermined connection factors for different 'zones'
+    in the cell space
+    :param i: row of cell
+    :param j: column of cell
+    :param const: determines whether a constant factor should be used, i.e. independent of position of cell
+    :return: a 3x3 matrix representing connection factors between a cell and its neighbours
+    """
     if const:
         return [[1.0, 1.0, 1.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0]]
     if 0 <= i <= 24 and 0 <= j <= 24:
@@ -22,6 +32,11 @@ def get_connection_factor(i: int, j: int, const: bool) -> list[list[float]]:
 
 
 def get_movement_factor(const: bool) -> list[list[float]]:
+    """
+    Return the movement factors for a particular cell
+    :param const: determines whether a constant factor should be returned or the factor should be random
+    :return: a 3x3 matrix representing movement factors between a cell and its neighbours
+    """
     if const:
         return [[0.5, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0.5]]
     else:
@@ -29,65 +44,177 @@ def get_movement_factor(const: bool) -> list[list[float]]:
 
 
 def get_population(j: int, const: bool) -> int:
+    """
+    Returns the population of a cell based on its column
+    :param j: column of cell
+    :param const: determines whether every cell has the same population or eastern cells have a higher population
+    :return: the population of a cell
+    """
     if const:
         return 100
     else:
         return round(pow(1.17, j) * 10)
 
 
+def get_pop_uk(i: int, j: int, uk: np.ndarray, fast: bool) -> int:
+    """
+    When using UK data, returns the population for each cell. Cells are made by combining 1x1km squares from the raw
+    data. The way in which these are combined depends on whether a less precise 'fast' run is taking place.
+    :param i: row of cell
+    :param j: column of cell
+    :param uk: data representing UK population data
+    :param fast: boolean value determining whether 12x6km or 7x4km cells will be used
+    :return: the population for the cell
+    """
+    population = 0
+    if fast:
+        rows = 12
+        columns = 6
+    else:
+        rows = 7
+        columns = 4
+
+    for r in range(i * rows, (i + 1) * rows):
+        if r > 1210:
+            continue
+        for c in range(j * columns, (j + 1) * columns):
+            if c > 651:
+                continue
+            population += uk[r][c]
+
+    return population
+
+
 class Space:
+    """
+    A class representing the cell space made up of cells.
+
+    r : int
+        number of rows of cells
+    c : int
+        number of columns of cells
+    t : int
+        current timestep
+    population : int
+        total population of cell space
+
+    susceptible : list[int]
+        susceptible[t] is the number of susceptible people at time t
+    exposed : list[int]
+        exposed[t] is the number of exposed people at time t
+    infected : list[int]
+        infected[t] is the number of infected people at time t
+    recovered : list[int]
+        recovered[t] is the number of recovered people at time t
+
+    delta_susceptible : list[int]
+        delta_susceptible[t] is the difference in number of susceptible people between times t and t-1
+    delta_exposed : list[int]
+        delta_exposed[t] is the difference in number of exposed people between times t and t-1
+    delta_infected : list[int]
+        delta_infected[t] is the difference in number of infected people between times t and t-1
+    delta_recovered : list[int]
+        delta_recovered[t] is the difference in number of recovered people between times t and t-1
+
+    sigma : float
+        The rate at which infected people transition to infected
+    eps : float
+        The rate at which infected people recover
+    virulence : float
+        How likely a disease is to spread between people
+
+    vaccination_factor : float
+        The proportion of people who take up the vaccine in a given timestep
+    vaccination_time : int
+        The number of timesteps before a vaccine is available
+
+    i_quarantine_factor : float
+        How effectively infected people are quarantined
+    i_quarantine_trigger : float
+        The proportion of the population who become infected before infected people are quarantined
+    i_quarantining_active : bool
+        Whether quarantining for infected people is currently active
+    e_quarantine_factor : float
+        How effectively exposed (asymptomatic) people are quarantined
+    e_quarantine_trigger : float
+        The proportion of the population who become infected before exposed (asymptomatic) people are quarantined
+    e_quarantining_active : bool
+        Whether quarantining for infected people is currently active
+    lockdown_trigger : float
+        The proportion of the population who become infected before a lockdown is initiated
+    unlock_trigger : float
+        The proportion of the population who are infected before a lockdown is ended
+    lockdown_active : bool
+        Whether a lockdown is currently happening
+
+    nonempty_cells : int
+    cells : list[list[Cell]]
+    """
+
     def __init__(self, r: int, c: int, sigma: float, eps: float, virulence: float, vaccination_factor: float,
                  vaccination_time: int, i_quarantine_factor: float, i_quarantine_trigger: float,
                  e_quarantine_factor: float, e_quarantine_trigger: float, lockdown_trigger: float, unlock_trigger: float
-                 , const_connection: bool, const_population: bool, const_movement: bool, start_center: bool):
+                 , const_connection: bool, const_population: bool, const_movement: bool, start_center: bool,
+                 uk_fast: bool, uk_slow: bool):
 
-        # Defines an r x c grid of cells at time t=0
         self.r = r
         self.c = c
         self.t = 0
         self.population = 0
 
-        # Total number of people at each timestep
         self.susceptible = []
         self.exposed = []
         self.infected = []
         self.recovered = []
 
-        # Total unique people at each timestep (i.e. change from previous timestep)
         self.delta_susceptible = [0]
         self.delta_exposed = [0]
         self.delta_infected = [0]
         self.delta_recovered = [0]
 
-        # Global parameters of the disease being modelled
         self.sigma = sigma
         self.eps = eps
         self.virulence = virulence
+
         self.vaccination_factor = vaccination_factor
         self.vaccination_time = vaccination_time
 
-        # NPIs
         self.i_quarantine_factor = i_quarantine_factor
         self.i_quarantine_trigger = i_quarantine_trigger
-        self.i_quarantining_active = 0
+        self.i_quarantining_active = False
         self.e_quarantine_factor = e_quarantine_factor
         self.e_quarantine_trigger = e_quarantine_trigger
-        self.e_quarantining_active = 0
+        self.e_quarantining_active = False
         self.lockdown_trigger = lockdown_trigger
         self.unlock_trigger = unlock_trigger
-        self.lockdown_active = 0
+        self.lockdown_active = False
 
-        # Initialise 2D matrix of cells, setting the central cell to have 30% infected population
-        cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
-                       get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0, recovered=0.0)
-                  for j in range(c)] for i in range(r)]
+        if uk_fast or uk_slow:
+            data = np.loadtxt("UK_population.asc", skiprows=6)
+            cells = [[Cell([i, j], get_pop_uk(i, j, data, uk_fast), get_connection_factor(i, j, const_connection),
+                           get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
+                           recovered=0.0)
+                      for j in range(c)] for i in range(r)]
+        else:
+            cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
+                           get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
+                           recovered=0.0)
+                      for j in range(c)] for i in range(r)]
 
+        self.nonempty_cells = 0
         for row in cells:
             for cell in row:
                 self.population += cell.population
+                if not cell.empty:
+                    self.nonempty_cells += 1
 
         self.cells = cells
-        self.start_infection(r, c, start_center)
+
+        if uk_fast or uk_slow:
+            for i in range(15):
+                self.start_infection_uk(r, c)
+        else:
+            self.start_infection(r, c, start_center)
         self.update_current_state()
 
     def __str__(self):
@@ -95,21 +222,54 @@ class Space:
                f" I:{round(self.infected[-1], 4)}, R:{round(self.recovered[-1], 4)}"
 
     def start_infection(self, r: int, c: int, center: bool) -> None:
+        """
+        Begins the infection either in the center or a random position. Recursively calls itself until it finds a
+        non-empty cell in which to start the infection. Sets 30% of the population to exposed.
+        :param r: row of cell
+        :param c: column of cell
+        :param center: whether to start the infection in the center
+        """
         if center:
             i = round(r / 2) - 1
             j = round(c / 2) - 1
         else:
-            i = round(random() * r)
-            j = round(random() * c)
+            i = math.floor(random() * r)
+            j = math.floor(random() * c)
 
-        self.cells[i][j].susceptible = [0.7]
-        self.cells[i][j].exposed = [0.3]
+        cell = self.cells[i][j]
+        if cell.empty and not center:
+            self.start_infection(r, c, center)
+            return
+
+        cell.susceptible = [0.7]
+        cell.exposed = [0.3]
+
+    def start_infection_uk(self, r: int, c: int) -> None:
+        """
+        Similar to start_infection, but specifically for UK data. Recursively calls itself until it finds a cell with
+        a population of at least 100. Sets 30% of the population to exposed.
+        :param r: row of cell
+        :param c: column of cell
+        """
+        i = math.floor(random() * r)
+        j = math.floor(random() * c)
+
+        cell = self.cells[i][j]
+        if cell.empty or cell.population < 100 or not cell.susceptible[0] == 1.0:
+            self.start_infection_uk(r, c)
+            return
+
+        cell.susceptible = [0.7]
+        cell.exposed = [0.3]
 
     def set_vaccination_factor(self, factor: float) -> None:
         self.vaccination_factor = factor
 
     # Returns the Moore neighbourhood of a given cell as a 2D array
     def get_moore_neighbourhood(self, coords: list[int]) -> list[list[any]]:
+        """
+        Returns the Moore neighbourhood of a given cell as a 2D array
+        """
         neighbourhood = []
 
         for i in range(-1, 2):
@@ -129,6 +289,9 @@ class Space:
 
     # Returns the von Neumann neighbourhood of a given cell as a 2D array
     def get_vn_neighbourhood(self, coords: list[int]) -> list[list[any]]:
+        """
+        Returns the von Neumann neighbourhood of a given cell as a 2D array
+        """
         neighbourhood = self.get_moore_neighbourhood(coords)
 
         neighbourhood[0][0] = None
@@ -138,11 +301,18 @@ class Space:
         return neighbourhood
 
     def neighbourhood_transition_term(self, neighbourhood: list[list[Cell]], cell: Cell) -> float:
+        """
+        Calculates the effect of a cell's neighbourhood on the number of people in a cell who are exposed to the
+        disease. For full context see transition functions in documentation.
+        """
         total = 0.0
         for row in range(3):
             for col in range(3):
                 neighbour = neighbourhood[row][col]
                 if neighbour is None:
+                    continue
+
+                if neighbour.empty:
                     continue
 
                 if self.lockdown_active:
@@ -166,8 +336,15 @@ class Space:
         return total
 
     def evolve(self) -> None:
+        """
+        Applies the transition function to each cell in the cell space and stores the updated states of each. See the
+        full transition functions in the documentation for a thorough explanation.
+        """
         for r in self.cells:
             for cell in r:
+                if cell.empty:
+                    continue
+
                 prev_s = cell.susceptible[self.t]
                 prev_e = cell.exposed[self.t]
                 prev_i = cell.infected[self.t]
@@ -211,6 +388,10 @@ class Space:
         self.t += 1
 
     def update_current_state(self) -> None:
+        """
+        Called at the end of an evolution, calculates the mean state of the cells and the approximate S, E, I, R
+        populations of the cell space overall. Also determines if thresholds have been met to trigger NPIs
+        """
         s = 0.0
         e = 0.0
         i = 0.0
@@ -218,26 +399,28 @@ class Space:
 
         for row in range(self.r):
             for col in range(self.c):
+                if self.cells[row][col].empty:
+                    continue
                 s += self.cells[row][col].susceptible[-1]
                 e += self.cells[row][col].exposed[-1]
                 i += self.cells[row][col].infected[-1]
                 r += self.cells[row][col].recovered[-1]
 
-        mean_s = s / (self.r * self.c)
-        mean_e = e / (self.r * self.c)
-        mean_i = i / (self.r * self.c)
+        mean_s = s / self.nonempty_cells
+        mean_e = e / self.nonempty_cells
+        mean_i = i / self.nonempty_cells
         mean_r = 1 - mean_e - mean_i - mean_s
 
         if mean_i >= self.i_quarantine_trigger:
-            self.i_quarantining_active = 1
+            self.i_quarantining_active = True
 
         if mean_i >= self.e_quarantine_trigger:
-            self.e_quarantining_active = 1
+            self.e_quarantining_active = True
 
         if mean_i >= self.lockdown_trigger:
-            self.lockdown_active = 1
+            self.lockdown_active = True
         if mean_i <= self.unlock_trigger:
-            self.lockdown_active = 0
+            self.lockdown_active = False
 
         self.susceptible.append(round(mean_s * self.population))
         self.exposed.append(round(mean_e * self.population))
@@ -245,6 +428,9 @@ class Space:
         self.recovered.append(round(mean_r * self.population))
 
     def update_delta_values(self) -> None:
+        """
+        Updates the delta values
+        """
         s, e, i, r = self.susceptible[-1], self.exposed[-1], self.infected[-1], self.recovered[-1]
         prev_s, prev_e, prev_i, prev_r = self.susceptible[-2], self.exposed[-2], self.infected[-2], self.recovered[-2]
 
@@ -253,12 +439,14 @@ class Space:
         self.delta_infected.append((i - prev_i))
         self.delta_recovered.append((r - prev_r))
 
-    # plot_sir_over_time and plot_delta_sir_over_time have identical code but must be kept separate for matplotlib
-    # to work as intended
-    def plot_sir_over_time(self) -> None:
+    def plot_seir_over_time(self) -> None:
+        """
+        Plot SEIR and delta SEIR over each time step. Contains some necessary duplication of code in order to have
+        MatPlotLib work as intended.
+        """
         x = range(len(self.infected))
-
         mpl_use('MacOSX')
+
         plt.figure()
         plt.plot(x, self.infected, label="I")
         plt.plot(x, self.susceptible, label="S")
@@ -269,10 +457,14 @@ class Space:
         plt.legend()
         plt.show()
 
-    def plot_delta_sir_over_time(self) -> None:
-        x = range(len(self.infected))
+        plt.figure()
+        plt.plot(x, self.exposed, label="E")
+        plt.plot(x, self.infected, label="I")
+        plt.xlabel("t")
+        plt.ylabel("Number of people")
+        plt.legend()
+        plt.show()
 
-        mpl_use('MacOSX')
         plt.figure()
         plt.plot(x, self.delta_infected, label="I")
         plt.plot(x, self.delta_susceptible, label="S")
@@ -283,12 +475,14 @@ class Space:
         plt.legend()
         plt.show()
 
-    # As above, plot_infected_state_at_times and plot_exposed_state_at_times must be kept separate in order to generate
-    # two separate graphs
-    def plot_infected_state_at_times(self, times: list[int]) -> None:
-        figure, axis = plt.subplots(2, 3)
+    def plot_state_at_times(self, times: list[int]) -> None:
+        """
+        Plot a heatmap of the cell space at particular times to show where infections and exposures are concentrated
+        :param times: times at which to plot the heatmaps
+        """
         mpl_use('MacOSX')
 
+        figure, axis = plt.subplots(2, 3)
         if len(times) > 6:
             return
 
@@ -297,32 +491,54 @@ class Space:
             for r in range(self.r):
                 row = []
                 for c in range(self.c):
-                    row.append(self.cells[r][c].discrete_infected[t])
+                    cell = self.cells[r][c]
+                    if cell.empty:
+                        row.append(0)
+                    else:
+                        row.append(cell.discrete_infected[t])
                 i.append(row)
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
-
         plt.show()
 
-    def plot_exposed_state_at_times(self, times: list[int]) -> None:
         figure, axis = plt.subplots(2, 3)
-        mpl_use('MacOSX')
-
-        if len(times) > 6:
-            return
-
         for t in times:
             i = []
             for r in range(self.r):
                 row = []
                 for c in range(self.c):
-                    row.append(self.cells[r][c].discrete_exposed[t])
+                    cell = self.cells[r][c]
+                    if cell.empty:
+                        row.append(0)
+                    else:
+                        row.append(cell.discrete_exposed[t])
                 i.append(row)
             axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
-
         plt.show()
+
+    def write_to_csv(self) -> None:
+        """
+        Records the state of the cell space at each time step in a CSV file to make more detailed analysis easy
+        """
+        header = ['t', 's', 'ds', 'e', 'de', 'i', 'di', 'r', 'dr']
+
+        data = []
+        for i in range(self.t):
+            row = [f"{i}", f"{self.susceptible[i]}", f"{self.delta_susceptible[i]}", f"{self.exposed[i]}",
+                   f"{self.delta_exposed[i]}", f"{self.infected[i]}", f"{self.delta_infected[i]}",
+                   f"{self.recovered[i]}", f"{self.delta_recovered[i]}"]
+            data.append(row)
+
+        dt = datetime.now().strftime("%Y-%m-%d %H;%M;%S")
+        with open(f"./csv_results/{dt}.csv", 'w', encoding='UTF8', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(header)
+            writer.writerows(data)
 
 
 def plot_vaccination_results(s: list[Space]) -> None:
+    """
+    Shows how trends in infected populations differ with the different vaccination parameters
+    """
     plt.figure()
     x = range(len(s[0].infected))
     mpl_use('MacOSX')
@@ -339,19 +555,3 @@ def plot_vaccination_results(s: list[Space]) -> None:
         print(
             f"Vaccination: {space.vaccination_factor}, max I: {max_infected}, at time T: "
             f"{space.infected.index(max_infected)}, total infected: {sum(space.infected)}")
-
-
-def write_to_csv(s: Space) -> None:
-    header = ['t', 's', 'ds', 'e', 'de', 'i', 'di', 'r', 'dr']
-
-    data = []
-    for i in range(s.t):
-        row = [f"{i}", f"{s.susceptible[i]}", f"{s.delta_susceptible[i]}", f"{s.exposed[i]}", f"{s.delta_exposed[i]}",
-               f"{s.infected[i]}", f"{s.delta_infected[i]}", f"{s.recovered[i]}", f"{s.delta_recovered[i]}"]
-        data.append(row)
-
-    dt = datetime.now().strftime("%Y-%m-%d %H;%M;%S")
-    with open(f"./csv_results/{dt}.csv", 'w', encoding='UTF8', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
-        writer.writerows(data)
