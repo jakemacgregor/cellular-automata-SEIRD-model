@@ -150,6 +150,7 @@ class Space:
     nonempty_cells : int
     cells : list[list[Cell]]
     """
+
     def __init__(self, r: int, c: int, sigma: float, eps: float, virulence: float, vaccination_factor: float,
                  vaccination_time: int, i_quarantine_factor: float, i_quarantine_trigger: float,
                  e_quarantine_factor: float, e_quarantine_trigger: float, lockdown_trigger: float, unlock_trigger: float
@@ -451,6 +452,14 @@ class Space:
         plt.plot(x, self.susceptible, label="S")
         plt.plot(x, self.recovered, label="R")
         plt.plot(x, self.exposed, label="E")
+        plt.xlabel("t")
+        plt.ylabel("Number of people")
+        plt.legend()
+        plt.show()
+
+        plt.figure()
+        plt.plot(x, self.exposed, label="E")
+        plt.plot(x, self.infected, label="I")
         plt.xlabel("t")
         plt.ylabel("Number of people")
         plt.legend()
