@@ -124,6 +124,8 @@ class Space:
         How likely a disease is to spread between people
     xi : float
         The natural rate of birth and death
+    zeta : float
+        The rate of death for infected people
 
     vaccination_factor : float
         The proportion of people who take up the vaccine in a given timestep
@@ -153,11 +155,11 @@ class Space:
     cells : list[list[Cell]]
     """
 
-    def __init__(self, r: int, c: int, sigma: float, eps: float, virulence: float, xi: float, vaccination_factor: float,
-                 vaccination_time: int, i_quarantine_factor: float, i_quarantine_trigger: float,
-                 e_quarantine_factor: float, e_quarantine_trigger: float, lockdown_trigger: float, unlock_trigger: float
-                 , const_connection: bool, const_population: bool, const_movement: bool, start_center: bool,
-                 uk_fast: bool, uk_slow: bool):
+    def __init__(self, r: int, c: int, sigma: float, eps: float, virulence: float, xi: float, zeta: float,
+                 vaccination_factor: float, vaccination_time: int, i_quarantine_factor: float,
+                 i_quarantine_trigger: float, e_quarantine_factor: float, e_quarantine_trigger: float,
+                 lockdown_trigger: float, unlock_trigger: float, const_connection: bool, const_population: bool,
+                 const_movement: bool, start_center: bool, uk_fast: bool, uk_slow: bool):
 
         self.r = r
         self.c = c
@@ -168,16 +170,19 @@ class Space:
         self.exposed = []
         self.infected = []
         self.recovered = []
+        self.deceased = []
 
         self.delta_susceptible = [0]
         self.delta_exposed = [0]
         self.delta_infected = [0]
         self.delta_recovered = [0]
+        self.delta_deceased = [0]
 
         self.sigma = sigma
         self.eps = eps
         self.virulence = virulence
         self.xi = xi
+        self.zeta = zeta
 
         self.vaccination_factor = vaccination_factor
         self.vaccination_time = vaccination_time
@@ -196,12 +201,12 @@ class Space:
             data = np.loadtxt("UK_population.asc", skiprows=6)
             cells = [[Cell([i, j], get_pop_uk(i, j, data, uk_fast), get_connection_factor(i, j, const_connection),
                            get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
-                           recovered=0.0)
+                           recovered=0.0, deceased=0.0)
                       for j in range(c)] for i in range(r)]
         else:
             cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
                            get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
-                           recovered=0.0)
+                           recovered=0.0, deceased=0.0)
                       for j in range(c)] for i in range(r)]
 
         self.nonempty_cells = 0
@@ -221,8 +226,8 @@ class Space:
         self.update_current_state()
 
     def __str__(self):
-        return f"T:{self.t}, S:{round(self.susceptible[-1], 4)}, E: {round(self.exposed[-1], 4)}," \
-               f" I:{round(self.infected[-1], 4)}, R:{round(self.recovered[-1], 4)}"
+        return f"T:{self.t}, S:{round(self.susceptible[-1], 4)}, E:{round(self.exposed[-1], 4)}," \
+               f" I:{round(self.infected[-1], 4)}, R:{round(self.recovered[-1], 4)}, D:{round(self.deceased[-1], 4)}"
 
     def start_infection(self, r: int, c: int, center: bool) -> None:
         """
@@ -357,15 +362,10 @@ class Space:
                 prev_e = cell.exposed[self.t] - self.xi * cell.exposed[self.t]
                 prev_i = cell.infected[self.t] - self.xi * cell.infected[self.t]
                 prev_r = cell.recovered[self.t] - self.xi * cell.recovered[self.t]
+                prev_d = cell.deceased[self.t]
 
                 neighbourhood = self.get_moore_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
-
-                # Apply births and deaths to population first
-                # prev_e -= self.xi * prev_e
-                # prev_i -= self.xi * prev_i
-                # prev_r -= self.xi * prev_r
-                # prev_i += self.xi * (1 - prev_i)
 
                 infected_minus_quarantine = prev_i
                 if self.i_quarantining_active:
@@ -388,13 +388,15 @@ class Space:
 
                 s = prev_s - s_to_v - s_to_e
                 e = (1 - self.sigma) * prev_e + s_to_e
-                i = (1 - self.eps) * prev_i + self.sigma * prev_e
+                i = (1 - (self.eps + self.zeta)) * prev_i + self.sigma * prev_e
                 r = prev_r + self.eps * prev_i + s_to_v
+                d = prev_d + self.zeta * prev_i
 
                 cell.susceptible.append(s)
                 cell.exposed.append(e)
                 cell.infected.append(i)
                 cell.recovered.append(r)
+                cell.deceased.append(d)
                 cell.discretise()
 
         self.update_current_state()
@@ -403,27 +405,31 @@ class Space:
 
     def update_current_state(self) -> None:
         """
-        Called at the end of an evolution, calculates the mean state of the cells and the approximate S, E, I, R
+        Called at the end of an evolution, calculates the mean state of the cells and the approximate S, E, I, R, D
         populations of the cell space overall. Also determines if thresholds have been met to trigger NPIs
         """
         s = 0.0
         e = 0.0
         i = 0.0
         r = 0.0
+        d = 0.0
 
         for row in range(self.r):
             for col in range(self.c):
-                if self.cells[row][col].empty:
+                cell = self.cells[row][col]
+                if cell.empty:
                     continue
-                s += self.cells[row][col].susceptible[-1]
-                e += self.cells[row][col].exposed[-1]
-                i += self.cells[row][col].infected[-1]
-                r += self.cells[row][col].recovered[-1]
+                s += cell.susceptible[-1]
+                e += cell.exposed[-1]
+                i += cell.infected[-1]
+                r += cell.recovered[-1]
+                d += cell.deceased[-1]
 
         mean_s = s / self.nonempty_cells
         mean_e = e / self.nonempty_cells
         mean_i = i / self.nonempty_cells
-        mean_r = 1 - mean_e - mean_i - mean_s
+        mean_d = d / self.nonempty_cells
+        mean_r = 1 - mean_e - mean_i - mean_s - mean_d
 
         if mean_i >= self.i_quarantine_trigger:
             self.i_quarantining_active = True
@@ -440,22 +446,25 @@ class Space:
         self.exposed.append(round(mean_e * self.population))
         self.infected.append(round(mean_i * self.population))
         self.recovered.append(round(mean_r * self.population))
+        self.deceased.append(round(mean_d * self.population))
 
     def update_delta_values(self) -> None:
         """
         Updates the delta values
         """
-        s, e, i, r = self.susceptible[-1], self.exposed[-1], self.infected[-1], self.recovered[-1]
-        prev_s, prev_e, prev_i, prev_r = self.susceptible[-2], self.exposed[-2], self.infected[-2], self.recovered[-2]
+        s, e, i, r, d = self.susceptible[-1], self.exposed[-1], self.infected[-1], self.recovered[-1], self.deceased[-1]
+        prev_s, prev_e, prev_i, prev_r, prev_d = self.susceptible[-2], self.exposed[-2], self.infected[-2], \
+            self.recovered[-2], self.deceased[-2]
 
         self.delta_susceptible.append((s - prev_s))
         self.delta_exposed.append((e - prev_e))
         self.delta_infected.append((i - prev_i))
         self.delta_recovered.append((r - prev_r))
+        self.delta_deceased.append((d-prev_d))
 
-    def plot_seir_over_time(self) -> None:
+    def plot_seird_over_time(self) -> None:
         """
-        Plot SEIR and delta SEIR over each time step. Contains some necessary duplication of code in order to have
+        Plot SEIRD and delta SEIRD over each time step. Contains some necessary duplication of code in order to have
         MatPlotLib work as intended.
         """
         x = range(len(self.infected))
@@ -466,6 +475,7 @@ class Space:
         plt.plot(x, self.susceptible, label="S")
         plt.plot(x, self.recovered, label="R")
         plt.plot(x, self.exposed, label="E")
+        plt.plot(x, self.deceased, label="D")
         plt.xlabel("t")
         plt.ylabel("Number of people")
         plt.legend()
@@ -484,6 +494,7 @@ class Space:
         plt.plot(x, self.delta_susceptible, label="S")
         plt.plot(x, self.delta_recovered, label="R")
         plt.plot(x, self.delta_exposed, label="E")
+        plt.plot(x, self.delta_deceased, label="D")
         plt.xlabel("t")
         plt.ylabel("Number of people")
         plt.legend()
@@ -542,13 +553,14 @@ class Space:
         """
         Records the state of the cell space at each time step in a CSV file to make more detailed analysis easy
         """
-        header = ['t', 's', 'ds', 'e', 'de', 'i', 'di', 'r', 'dr']
+        header = ['t', 's', 'ds', 'e', 'de', 'i', 'di', 'r', 'dr', 'd', 'dd']
 
         data = []
         for i in range(self.t):
             row = [f"{i}", f"{self.susceptible[i]}", f"{self.delta_susceptible[i]}", f"{self.exposed[i]}",
                    f"{self.delta_exposed[i]}", f"{self.infected[i]}", f"{self.delta_infected[i]}",
-                   f"{self.recovered[i]}", f"{self.delta_recovered[i]}"]
+                   f"{self.recovered[i]}", f"{self.delta_recovered[i]}", f"{self.deceased[i]}",
+                   f"{self.delta_deceased[i]}"]
             data.append(row)
 
         dt = datetime.now().strftime("%Y-%m-%d %H;%M;%S")
