@@ -15,6 +15,7 @@ if __name__ == '__main__':
     sigma = 0.6
     eps = 0.4
     vir = 0.6
+    xi = 0.000
 
     # Distribution and movement of populations
     homogeneous_population = True
@@ -78,7 +79,7 @@ if __name__ == '__main__':
 
     # Create an initial space with the parameters following user input
     # spaces is a list as further spaces can be added for comparison
-    spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, 0, vaccination_time, i_quarantine_factor,
+    spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, xi, 0, vaccination_time, i_quarantine_factor,
                                  i_quarantine_trigger, e_quarantine_factor, e_quarantine_trigger, lockdown_trigger,
                                  unlock_trigger, constant_connection_factor, homogeneous_population,
                                  constant_movement_factor, start_in_center, uk_fast, uk_slow)]

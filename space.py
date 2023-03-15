@@ -122,6 +122,8 @@ class Space:
         The rate at which infected people recover
     virulence : float
         How likely a disease is to spread between people
+    xi : float
+        The natural rate of birth and death
 
     vaccination_factor : float
         The proportion of people who take up the vaccine in a given timestep
@@ -151,7 +153,7 @@ class Space:
     cells : list[list[Cell]]
     """
 
-    def __init__(self, r: int, c: int, sigma: float, eps: float, virulence: float, vaccination_factor: float,
+    def __init__(self, r: int, c: int, sigma: float, eps: float, virulence: float, xi: float, vaccination_factor: float,
                  vaccination_time: int, i_quarantine_factor: float, i_quarantine_trigger: float,
                  e_quarantine_factor: float, e_quarantine_trigger: float, lockdown_trigger: float, unlock_trigger: float
                  , const_connection: bool, const_population: bool, const_movement: bool, start_center: bool,
@@ -175,6 +177,7 @@ class Space:
         self.sigma = sigma
         self.eps = eps
         self.virulence = virulence
+        self.xi = xi
 
         self.vaccination_factor = vaccination_factor
         self.vaccination_time = vaccination_time
@@ -350,13 +353,19 @@ class Space:
                 if cell.empty:
                     continue
 
-                prev_s = cell.susceptible[self.t]
-                prev_e = cell.exposed[self.t]
-                prev_i = cell.infected[self.t]
-                prev_r = cell.recovered[self.t]
+                prev_s = cell.susceptible[self.t] + self.xi * (1 - cell.susceptible[self.t])
+                prev_e = cell.exposed[self.t] - self.xi * cell.exposed[self.t]
+                prev_i = cell.infected[self.t] - self.xi * cell.infected[self.t]
+                prev_r = cell.recovered[self.t] - self.xi * cell.recovered[self.t]
 
                 neighbourhood = self.get_moore_neighbourhood(cell.coords)
                 n = self.neighbourhood_transition_term(neighbourhood, cell)
+
+                # Apply births and deaths to population first
+                # prev_e -= self.xi * prev_e
+                # prev_i -= self.xi * prev_i
+                # prev_r -= self.xi * prev_r
+                # prev_i += self.xi * (1 - prev_i)
 
                 infected_minus_quarantine = prev_i
                 if self.i_quarantining_active:
@@ -502,12 +511,11 @@ class Space:
                     else:
                         row.append(cell.discrete_infected[t])
                 i.append(row)
-            im = axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i, vmin=0, vmax=1.0,  cmap='plasma')
+            im = axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i, vmin=0, vmax=1.0, cmap='plasma')
 
         figure.subplots_adjust(right=0.8)
         cbar_ax = figure.add_axes([0.85, 0.15, 0.05, 0.7])
         figure.colorbar(im, cax=cbar_ax)
-
 
     def plot_exposed_state_at_times(self, times: list[int]) -> None:
         mpl_use('MacOSX')
@@ -524,7 +532,7 @@ class Space:
                     else:
                         row.append(cell.discrete_exposed[t])
                 i.append(row)
-            im = axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i, vmin=0, vmax=1.0,  cmap='plasma')
+            im = axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i, vmin=0, vmax=1.0, cmap='plasma')
 
         figure.subplots_adjust(right=0.8)
         cbar_ax = figure.add_axes([0.85, 0.15, 0.05, 0.7])
