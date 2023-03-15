@@ -244,6 +244,11 @@ class Space:
         cell.susceptible = [0.7]
         cell.exposed = [0.3]
 
+    def start_infection_particular(self, i, j):
+        cell = self.cells[i][j]
+        cell.susceptible = [0.7]
+        cell.exposed = [0.3]
+
     def start_infection_uk(self, r: int, c: int) -> None:
         """
         Similar to start_infection, but specifically for UK data. Recursively calls itself until it finds a cell with
@@ -475,7 +480,7 @@ class Space:
         plt.legend()
         plt.show()
 
-    def plot_state_at_times(self, times: list[int]) -> None:
+    def plot_infected_state_at_times(self, times: list[int]) -> None:
         """
         Plot a heatmap of the cell space at particular times to show where infections and exposures are concentrated
         :param times: times at which to plot the heatmaps
@@ -497,8 +502,15 @@ class Space:
                     else:
                         row.append(cell.discrete_infected[t])
                 i.append(row)
-            axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
-        plt.show()
+            im = axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i, vmin=0, vmax=1.0,  cmap='plasma')
+
+        figure.subplots_adjust(right=0.8)
+        cbar_ax = figure.add_axes([0.85, 0.15, 0.05, 0.7])
+        figure.colorbar(im, cax=cbar_ax)
+
+
+    def plot_exposed_state_at_times(self, times: list[int]) -> None:
+        mpl_use('MacOSX')
 
         figure, axis = plt.subplots(2, 3)
         for t in times:
@@ -512,8 +524,11 @@ class Space:
                     else:
                         row.append(cell.discrete_exposed[t])
                 i.append(row)
-            axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i)
-        plt.show()
+            im = axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i, vmin=0, vmax=1.0,  cmap='plasma')
+
+        figure.subplots_adjust(right=0.8)
+        cbar_ax = figure.add_axes([0.85, 0.15, 0.05, 0.7])
+        figure.colorbar(im, cax=cbar_ax)
 
     def write_to_csv(self) -> None:
         """

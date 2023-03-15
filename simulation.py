@@ -112,7 +112,8 @@ if __name__ == '__main__':
 
     # Plot figures for the initial space by default - this avoids having too many figures
     spaces[0].plot_seir_over_time()
-    spaces[0].plot_state_at_times(output_timestamps)
+    spaces[0].plot_infected_state_at_times(output_timestamps)
+    spaces[0].plot_exposed_state_at_times(output_timestamps)
 
     # Separately plot the results of vaccination for the different spaces if vaccination has taken place
     if vaccination:
