@@ -2,13 +2,14 @@ from space import Space, plot_vaccination_results
 from compartment import Compartment
 from matplotlib import pyplot as plt
 from copy import deepcopy as copy
+from math import floor
 
 if __name__ == '__main__':
     # Variables describing the model at a high level and whether to use UK dataset
     columns = 50
     rows = 50
     iterations = 50
-    output_timestamps = [0, 5, 10, 15, 20, 25]
+    output_timestamps = []
     uk_fast = False
     uk_slow = False
 
@@ -17,7 +18,7 @@ if __name__ == '__main__':
     eps = 0.4
     vir = 0.6
     xi = 0.0005
-    zeta = 0.01
+    zeta = 0.005
 
     # Distribution and movement of populations
     homogeneous_population = True
@@ -103,8 +104,8 @@ if __name__ == '__main__':
         spaces[0].write_to_csv()
 
     # Allow users specify different timesteps for the snapshots of the space - grid is designed for 6 such figures
+    # Otherwise divide intervals by 6 and use these equally spaced intervals
     if input("Do you want to specify timestamps for cell space overview? (y/n)") == "y":
-        output_timestamps = []
         print("Enter 6 integer timestamps:")
         for i in range(6):
             t = int(input())
@@ -113,6 +114,10 @@ if __name__ == '__main__':
                 i -= 1
                 continue
             output_timestamps.append(t)
+    else:
+        interval = floor(iterations / 6)
+        for i in range(1, 7):
+            output_timestamps.append(interval*i)
 
     # Plot figures for the initial space by default - this avoids having too many figures
     spaces[0].plot_population_over_time(False, list(Compartment))
