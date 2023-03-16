@@ -120,12 +120,24 @@ if __name__ == '__main__':
             output_timestamps.append(interval*i)
 
     # Plot figures for the initial space by default - this avoids having too many figures
+    # Save plots to img folder - overwritten after each run, so make copies if required
+    plt.rcParams['figure.figsize'] = [6.8, 4.8]
     spaces[0].plot_population_over_time(False, list(Compartment))
+    plt.savefig("./img/SEIRD.png", bbox_inches='tight')
+
     spaces[0].plot_population_over_time(False, [Compartment.EXPOSED, Compartment.INFECTED, Compartment.DECEASED])
+    plt.savefig("./img/EID.png", bbox_inches='tight')
+
+    plt.rcParams['figure.figsize'] = [6, 3.6]
     spaces[0].plot_state_at_times(output_timestamps, Compartment.INFECTED)
+    plt.savefig("./img/infected_time.png", bbox_inches='tight')
+
     spaces[0].plot_state_at_times(output_timestamps, Compartment.EXPOSED)
+    plt.savefig("./img/exposed_time.png", bbox_inches='tight')
 
     # Separately plot the results of vaccination for the different spaces if vaccination has taken place
     if vaccination:
+        plt.rcParams['figure.figsize'] = [6, 4]
         plot_vaccination_results(spaces)
+        plt.savefig("./img/vaccination.png", bbox_inches='tight')
     plt.show()

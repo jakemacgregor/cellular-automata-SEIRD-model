@@ -483,27 +483,27 @@ class Space:
                     data = self.susceptible
                     if delta:
                         data = self.delta_susceptible
-                    plt.plot(x, data, label="S")
+                    plt.plot(x, data, c='limegreen', label="S")
                 case Compartment.EXPOSED:
                     data = self.exposed
                     if delta:
                         data = self.delta_exposed
-                    plt.plot(x, data, label="E")
+                    plt.plot(x, data, c='gold', label="E")
                 case Compartment.INFECTED:
                     data = self.infected
                     if delta:
                         data = self.delta_infected
-                    plt.plot(x, data, label="I")
+                    plt.plot(x, data, c='orangered', label="I")
                 case Compartment.RECOVERED:
                     data = self.recovered
                     if delta:
                         data = self.delta_recovered
-                    plt.plot(x, data, label="R")
+                    plt.plot(x, data, c='darkviolet', label="R")
                 case Compartment.DECEASED:
                     data = self.deceased
                     if delta:
                         data = self.delta_deceased
-                    plt.plot(x, data, label="D")
+                    plt.plot(x, data, c='dimgray', label="D")
 
         plt.xlabel("t")
         plt.ylabel("Number of people")
