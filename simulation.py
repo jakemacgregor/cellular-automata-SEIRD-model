@@ -1,4 +1,5 @@
 from space import Space, plot_vaccination_results
+from compartment import Compartment
 from matplotlib import pyplot as plt
 from copy import deepcopy as copy
 
@@ -98,9 +99,10 @@ if __name__ == '__main__':
             space.evolve()
 
     # Results are written to a CSV
-    spaces[0].write_to_csv()
+    if input("Save to CSV? (y/n)") == "y":
+        spaces[0].write_to_csv()
 
-    # Allow users specify different timesteps for the snapshots of the space - grid is designed for 6 such figurs
+    # Allow users specify different timesteps for the snapshots of the space - grid is designed for 6 such figures
     if input("Do you want to specify timestamps for cell space overview? (y/n)") == "y":
         output_timestamps = []
         print("Enter 6 integer timestamps:")
@@ -113,9 +115,10 @@ if __name__ == '__main__':
             output_timestamps.append(t)
 
     # Plot figures for the initial space by default - this avoids having too many figures
-    spaces[0].plot_seird_over_time()
-    spaces[0].plot_infected_state_at_times(output_timestamps)
-    spaces[0].plot_exposed_state_at_times(output_timestamps)
+    spaces[0].plot_population_over_time(False, list(Compartment))
+    spaces[0].plot_population_over_time(False, [Compartment.EXPOSED, Compartment.INFECTED, Compartment.DECEASED])
+    spaces[0].plot_state_at_times(output_timestamps, Compartment.INFECTED)
+    spaces[0].plot_state_at_times(output_timestamps, Compartment.EXPOSED)
 
     # Separately plot the results of vaccination for the different spaces if vaccination has taken place
     if vaccination:

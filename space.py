@@ -8,6 +8,10 @@ from matplotlib import pyplot as plt
 from matplotlib import use as mpl_use
 from math import floor
 from random import random
+from compartment import Compartment
+
+uk_start_locations = [(160, 139), (137, 75), (142, 112), (85, 87), (154, 70), (96, 16), (96, 25), (164, 70), (100, 115),
+                      (110, 81), (46, 26), (51, 63), (87, 69), (70, 79), (120, 60)]
 
 
 def get_connection_factor(i: int, j: int, const: bool) -> list[list[float]]:
@@ -219,8 +223,9 @@ class Space:
         self.cells = cells
 
         if uk_fast or uk_slow:
-            for i in range(15):
-                self.start_infection_uk(r, c)
+            self.start_infection_particular(uk_start_locations)
+            # for i in range(15):
+            #     self.start_infection_uk(r, c)
         else:
             self.start_infection(r, c, start_center)
         self.update_current_state()
@@ -252,10 +257,11 @@ class Space:
         cell.susceptible = [0.7]
         cell.exposed = [0.3]
 
-    def start_infection_particular(self, i, j):
-        cell = self.cells[i][j]
-        cell.susceptible = [0.7]
-        cell.exposed = [0.3]
+    def start_infection_particular(self, locations: list[tuple[int, int]]):
+        for location in locations:
+            cell = self.cells[location[0]][location[1]]
+            cell.susceptible = [0.7]
+            cell.exposed = [0.3]
 
     def start_infection_uk(self, r: int, c: int) -> None:
         """
@@ -344,7 +350,7 @@ class Space:
                     exposed = (1 - self.e_quarantine_factor) * exposed
 
                 total += (neighbour.population / cell.population) * c * m * self.virulence * \
-                         (exposed + infected)
+                         (0.5 * exposed + infected)
 
         return total
 
@@ -376,7 +382,8 @@ class Space:
                     exposed_minus_quarantine = prev_e * (1 - self.e_quarantine_factor)
 
                 # Assume people are infected over being vaccinated as there may be some overlap
-                s_to_e = self.virulence * prev_s * (infected_minus_quarantine + exposed_minus_quarantine) + prev_s * n
+                s_to_e = self.virulence * prev_s * (infected_minus_quarantine + 1 / 2 * exposed_minus_quarantine) \
+                         + prev_s * n
                 if s_to_e > prev_s:
                     s_to_e = prev_s
 
@@ -460,50 +467,54 @@ class Space:
         self.delta_exposed.append((e - prev_e))
         self.delta_infected.append((i - prev_i))
         self.delta_recovered.append((r - prev_r))
-        self.delta_deceased.append((d-prev_d))
+        self.delta_deceased.append((d - prev_d))
 
-    def plot_seird_over_time(self) -> None:
+    def plot_population_over_time(self, delta: bool, compartments: list[Compartment]) -> None:
         """
-        Plot SEIRD and delta SEIRD over each time step. Contains some necessary duplication of code in order to have
-        MatPlotLib work as intended.
+        Plot chosen compartments over each time step.
         """
         x = range(len(self.infected))
         mpl_use('MacOSX')
 
         plt.figure()
-        plt.plot(x, self.infected, label="I")
-        plt.plot(x, self.susceptible, label="S")
-        plt.plot(x, self.recovered, label="R")
-        plt.plot(x, self.exposed, label="E")
-        plt.plot(x, self.deceased, label="D")
+        for compartment in compartments:
+            match compartment:
+                case Compartment.SUSCEPTIBLE:
+                    data = self.susceptible
+                    if delta:
+                        data = self.delta_susceptible
+                    plt.plot(x, data, label="S")
+                case Compartment.EXPOSED:
+                    data = self.exposed
+                    if delta:
+                        data = self.delta_exposed
+                    plt.plot(x, data, label="E")
+                case Compartment.INFECTED:
+                    data = self.infected
+                    if delta:
+                        data = self.delta_infected
+                    plt.plot(x, data, label="I")
+                case Compartment.RECOVERED:
+                    data = self.recovered
+                    if delta:
+                        data = self.delta_recovered
+                    plt.plot(x, data, label="R")
+                case Compartment.DECEASED:
+                    data = self.deceased
+                    if delta:
+                        data = self.delta_deceased
+                    plt.plot(x, data, label="D")
+
         plt.xlabel("t")
         plt.ylabel("Number of people")
         plt.legend()
         plt.show()
 
-        plt.figure()
-        plt.plot(x, self.exposed, label="E")
-        plt.plot(x, self.infected, label="I")
-        plt.xlabel("t")
-        plt.ylabel("Number of people")
-        plt.legend()
-        plt.show()
-
-        plt.figure()
-        plt.plot(x, self.delta_infected, label="I")
-        plt.plot(x, self.delta_susceptible, label="S")
-        plt.plot(x, self.delta_recovered, label="R")
-        plt.plot(x, self.delta_exposed, label="E")
-        plt.plot(x, self.delta_deceased, label="D")
-        plt.xlabel("t")
-        plt.ylabel("Number of people")
-        plt.legend()
-        plt.show()
-
-    def plot_infected_state_at_times(self, times: list[int]) -> None:
+    def plot_state_at_times(self, times: list[int], compartment: Compartment) -> None:
         """
-        Plot a heatmap of the cell space at particular times to show where infections and exposures are concentrated
+        Plot a heatmap of the cell space at particular times for a particular compartment
         :param times: times at which to plot the heatmaps
+        :param compartment: compartment to plot
         """
         mpl_use('MacOSX')
 
@@ -511,6 +522,7 @@ class Space:
         if len(times) > 6:
             return
 
+        max_value = 0.0
         for t in times:
             i = []
             for r in range(self.r):
@@ -520,30 +532,26 @@ class Space:
                     if cell.empty:
                         row.append(0)
                     else:
-                        row.append(cell.discrete_infected[t])
+                        d = 0
+                        match compartment:
+                            case Compartment.SUSCEPTIBLE:
+                                d = cell.discrete_susceptible[t]
+                            case Compartment.EXPOSED:
+                                d = cell.discrete_exposed[t]
+                            case Compartment.INFECTED:
+                                d = cell.discrete_infected[t]
+                            case Compartment.RECOVERED:
+                                d = cell.discrete_recovered[t]
+                            case Compartment.DECEASED:
+                                d = cell.discrete_deceased[t]
+                        if d > max_value:
+                            max_value = d
+                        row.append(d)
                 i.append(row)
-            im = axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i, vmin=0, vmax=1.0, cmap='plasma')
 
-        figure.subplots_adjust(right=0.8)
-        cbar_ax = figure.add_axes([0.85, 0.15, 0.05, 0.7])
-        figure.colorbar(im, cax=cbar_ax)
-
-    def plot_exposed_state_at_times(self, times: list[int]) -> None:
-        mpl_use('MacOSX')
-
-        figure, axis = plt.subplots(2, 3)
-        for t in times:
-            i = []
-            for r in range(self.r):
-                row = []
-                for c in range(self.c):
-                    cell = self.cells[r][c]
-                    if cell.empty:
-                        row.append(0)
-                    else:
-                        row.append(cell.discrete_exposed[t])
-                i.append(row)
-            im = axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i, vmin=0, vmax=1.0, cmap='plasma')
+            im = axis[floor(times.index(t) / 3), times.index(t) % 3].imshow(i, vmin=0, vmax=max_value, cmap='plasma')
+            axis[floor(times.index(t) / 3), times.index(t) % 3].set_title(f"t = {t}")
+            axis[floor(times.index(t) / 3), times.index(t) % 3].axis('off')
 
         figure.subplots_adjust(right=0.8)
         cbar_ax = figure.add_axes([0.85, 0.15, 0.05, 0.7])
