@@ -35,6 +35,23 @@ def get_connection_factor(i: int, j: int, const: bool) -> list[list[float]]:
         return [[0.3, 0.3, 0.3], [0.3, 0, 0.3], [0.3, 0.3, 0.3]]
 
 
+def get_connection_factor_uk(population: int) -> list[list[float]]:
+    """
+    Return the connection factors for a particular cell based on predetermined connection factors for different 'zones'
+    in the cell space
+    :param population: population of the cell for which connection factor is being acquired
+    :return: a 3x3 matrix representing connection factors between a cell and its neighbours
+    """
+    if population >= 10000:
+        return [[1.0, 1.0, 1.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0]]
+    elif population >= 500:
+        return [[0.6, 0.6, 0.6], [0.6, 0, 0.6], [0.6, 0.6, 0.6]]
+    elif population > 0:
+        return [[0.3, 0.3, 0.3], [0.3, 0, 0.3], [0.3, 0.3, 0.3]]
+    else:
+        return [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
+
 def get_movement_factor(const: bool) -> list[list[float]]:
     """
     Return the movement factors for a particular cell
@@ -203,15 +220,17 @@ class Space:
 
         if uk_fast or uk_slow:
             data = np.loadtxt("UK_population.asc", skiprows=6)
-            cells = [[Cell([i, j], get_pop_uk(i, j, data, uk_fast), get_connection_factor(i, j, const_connection),
+            cells = [[Cell([i, j], get_pop_uk(i, j, data, uk_fast), get_connection_factor_uk(get_pop_uk(i, j, data,
+                                                                                                        uk_fast)),
                            get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
                            recovered=0.0, deceased=0.0)
                       for j in range(c)] for i in range(r)]
         else:
-            cells = [[Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
-                           get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
-                           recovered=0.0, deceased=0.0)
-                      for j in range(c)] for i in range(r)]
+            cells = [
+                [Cell([i, j], get_population(j, const_population), get_connection_factor(i, j, const_connection),
+                      get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
+                      recovered=0.0, deceased=0.0)
+                 for j in range(c)] for i in range(r)]
 
         self.nonempty_cells = 0
         for row in cells:
@@ -222,10 +241,11 @@ class Space:
 
         self.cells = cells
 
-        if uk_fast or uk_slow:
+        if uk_slow:
             self.start_infection_particular(uk_start_locations)
-            # for i in range(15):
-            #     self.start_infection_uk(r, c)
+        elif uk_fast:
+            for i in range(15):
+                self.start_infection_uk(r, c)
         else:
             self.start_infection(r, c, start_center)
         self.update_current_state()
