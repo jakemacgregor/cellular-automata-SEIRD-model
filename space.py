@@ -370,7 +370,7 @@ class Space:
                     exposed = (1 - self.e_quarantine_factor) * exposed
 
                 total += (neighbour.population / cell.population) * c * m * self.virulence * \
-                         (0.5 * exposed + infected)
+                         ((0.85 * exposed) + infected)
 
         return total
 
@@ -402,7 +402,7 @@ class Space:
                     exposed_minus_quarantine = prev_e * (1 - self.e_quarantine_factor)
 
                 # Assume people are infected over being vaccinated as there may be some overlap
-                s_to_e = self.virulence * prev_s * (infected_minus_quarantine + 1 / 2 * exposed_minus_quarantine) \
+                s_to_e = self.virulence * prev_s * (infected_minus_quarantine + (0.85 * exposed_minus_quarantine)) \
                          + prev_s * n
                 if s_to_e > prev_s:
                     s_to_e = prev_s

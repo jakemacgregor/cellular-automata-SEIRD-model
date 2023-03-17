@@ -73,12 +73,12 @@ if __name__ == '__main__':
 
     # Allow setup of NPIs with user-specified parameters
     if input("Do you want to simulate the effects of NPIs? (y/n)") == "y":
-        i_quarantine_factor = float(input("Success rate of quarantining infected people (float):") or "0.98")
+        i_quarantine_factor = float(input("Success rate of quarantining infected people (float):") or "0.81")
         i_quarantine_trigger = float(input("What % infected before quarantining infected people (float):") or "0.001")
-        e_quarantine_factor = float(input("Success rate of asymptomatic quarantine (float):") or "0.2")
+        e_quarantine_factor = float(input("Success rate of asymptomatic quarantine (float):") or "0.17")
         e_quarantine_trigger = float(input("What % infected before asymptomatic quarantine (float):") or "0.003")
         lockdown_trigger = float(input("What % infected before restriction of movement (float):") or "0.05")
-        unlock_trigger = float(input("What % infected before restriction of movement ends (float):") or "0.01")
+        unlock_trigger = float(input("What % infected before restriction of movement ends (float):") or "0.005")
 
     # Create an initial space with the parameters following user input
     # spaces is a list as further spaces can be added for comparison
@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     # Results are written to a CSV
     if input("Save to CSV? (y/n)") == "y":
-        spaces[0].write_to_csv()
+        spaces[1].write_to_csv()
 
     # Allow users specify different timesteps for the snapshots of the space - grid is designed for 6 such figures
     # Otherwise divide intervals by 6 and use these equally spaced intervals
@@ -122,10 +122,10 @@ if __name__ == '__main__':
     # Plot figures for the initial space by default - this avoids having too many figures
     # Save plots to img folder - overwritten after each run, so make copies if required
     plt.rcParams['figure.figsize'] = [6.8, 4.8]
-    spaces[0].plot_population_over_time(False, list(Compartment))
+    spaces[1].plot_population_over_time(False, list(Compartment))
     plt.savefig("./img/SEIRD.png", bbox_inches='tight')
 
-    spaces[0].plot_population_over_time(False, [Compartment.EXPOSED, Compartment.INFECTED, Compartment.DECEASED])
+    spaces[1].plot_population_over_time(False, [Compartment.EXPOSED, Compartment.INFECTED, Compartment.DECEASED])
     plt.savefig("./img/EID.png", bbox_inches='tight')
 
     plt.rcParams['figure.figsize'] = [6, 3.6]
