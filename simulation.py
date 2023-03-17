@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     # Results are written to a CSV
     if input("Save to CSV? (y/n)") == "y":
-        spaces[1].write_to_csv()
+        spaces[0].write_to_csv()
 
     # Allow users specify different timesteps for the snapshots of the space - grid is designed for 6 such figures
     # Otherwise divide intervals by 6 and use these equally spaced intervals
@@ -122,10 +122,10 @@ if __name__ == '__main__':
     # Plot figures for the initial space by default - this avoids having too many figures
     # Save plots to img folder - overwritten after each run, so make copies if required
     plt.rcParams['figure.figsize'] = [6.8, 4.8]
-    spaces[1].plot_population_over_time(False, list(Compartment))
+    spaces[0].plot_population_over_time(False, list(Compartment))
     plt.savefig("./img/SEIRD.png", bbox_inches='tight')
 
-    spaces[1].plot_population_over_time(False, [Compartment.EXPOSED, Compartment.INFECTED, Compartment.DECEASED])
+    spaces[0].plot_population_over_time(False, [Compartment.EXPOSED, Compartment.INFECTED, Compartment.DECEASED])
     plt.savefig("./img/EID.png", bbox_inches='tight')
 
     plt.rcParams['figure.figsize'] = [6, 3.6]
