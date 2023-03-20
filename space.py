@@ -77,23 +77,18 @@ def get_population(j: int, const: bool) -> int:
         return round(pow(1.17, j) * 10)
 
 
-def get_pop_uk(i: int, j: int, uk: np.ndarray, fast: bool) -> int:
+def get_pop_uk(i: int, j: int, uk: np.ndarray) -> int:
     """
     When using UK data, returns the population for each cell. Cells are made by combining 1x1km squares from the raw
     data. The way in which these are combined depends on whether a less precise 'fast' run is taking place.
     :param i: row of cell
     :param j: column of cell
     :param uk: data representing UK population data
-    :param fast: boolean value determining whether 12x6km or 7x4km cells will be used
     :return: the population for the cell
     """
     population = 0
-    if fast:
-        rows = 12
-        columns = 6
-    else:
-        rows = 7
-        columns = 4
+    rows = 7
+    columns = 4
 
     for r in range(i * rows, (i + 1) * rows):
         if r > 1210:
@@ -180,7 +175,7 @@ class Space:
                  vaccination_factor: float, vaccination_time: int, i_quarantine_factor: float,
                  i_quarantine_trigger: float, e_quarantine_factor: float, e_quarantine_trigger: float,
                  lockdown_trigger: float, unlock_trigger: float, const_connection: bool, const_population: bool,
-                 const_movement: bool, start_center: bool, uk_fast: bool, uk_slow: bool):
+                 const_movement: bool, start_center: bool, uk_data: bool):
 
         self.r = r
         self.c = c
@@ -218,10 +213,9 @@ class Space:
         self.unlock_trigger = unlock_trigger
         self.lockdown_active = False
 
-        if uk_fast or uk_slow:
+        if uk_data:
             data = np.loadtxt("UK_population.asc", skiprows=6)
-            cells = [[Cell([i, j], get_pop_uk(i, j, data, uk_fast), get_connection_factor_uk(get_pop_uk(i, j, data,
-                                                                                                        uk_fast)),
+            cells = [[Cell([i, j], get_pop_uk(i, j, data), get_connection_factor_uk(get_pop_uk(i, j, data)),
                            get_movement_factor(const_movement), susceptible=1.0, exposed=0.0, infected=0.0,
                            recovered=0.0, deceased=0.0)
                       for j in range(c)] for i in range(r)]
@@ -241,11 +235,10 @@ class Space:
 
         self.cells = cells
 
-        if uk_slow:
+        if uk_data:
             self.start_infection_particular(uk_start_locations)
-        elif uk_fast:
-            for i in range(15):
-                self.start_infection_uk(r, c)
+            # for i in range(15):
+            #     self.start_infection_uk(r, c)
         else:
             self.start_infection(r, c, start_center)
         self.update_current_state()
@@ -403,7 +396,7 @@ class Space:
 
                 # Assume people are infected over being vaccinated as there may be some overlap
                 s_to_e = self.virulence * prev_s * (infected_minus_quarantine + (0.85 * exposed_minus_quarantine)) \
-                         + prev_s * n
+                    + prev_s * n
                 if s_to_e > prev_s:
                     s_to_e = prev_s
 
@@ -542,6 +535,7 @@ class Space:
         if len(times) > 6:
             return
 
+        im = None
         max_value = 0.0
         for t in times:
             i = []

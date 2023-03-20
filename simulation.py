@@ -10,8 +10,7 @@ if __name__ == '__main__':
     rows = 50
     iterations = 50
     output_timestamps = []
-    uk_fast = False
-    uk_slow = False
+    uk_data = False
 
     # Parameters of the disease
     sigma = 0.6
@@ -41,26 +40,24 @@ if __name__ == '__main__':
 
     # Set up model for UK dataset
     if input("Use UK population data? (y/n)") == "y":
-        columns = 109
-        rows = 101
-        uk_fast = True
-
-        if input("Full 173 x 163 run? (y/n)") == "y":
-            uk_slow = True
-            uk_fast = False
-            columns = 163
-            rows = 173
+        columns = 163
+        rows = 173
+        uk_data = True
+        sigma = 1 / 5
+        eps = 1 / 7
+        vir = 0.4
+        iterations = 100
 
     # Allow user override for model setup and population movement/distribution
     if input("Do you want to specify parameters? (y/n)") == "y":
-        if not (uk_fast or uk_slow):
+        if not uk_data:
             columns = int(input("Number of columns (int):") or "50")
             rows = int(input("Number of rows (int):") or "50")
         sigma = float(input("Sigma value (float):") or "0.6")
         eps = float(input("Epsilon value (float):") or "0.4")
         vir = float(input("Virulence (float):") or "0.6")
         iterations = int(input("Number of iterations (int):") or "50")
-        if not (uk_fast or uk_slow):
+        if not uk_data:
             start_in_center = not (input("Start infection in random location? (y/n)") == "y")
             homogeneous_population = not (input("Do you want inhomogeneous population distribution? (y/n)") == "y")
         constant_connection_factor = not (input("Do you want non-constant connections between cells? (y/n)") == "y")
@@ -85,7 +82,7 @@ if __name__ == '__main__':
     spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, xi, zeta, 0, vaccination_time, i_quarantine_factor,
                                  i_quarantine_trigger, e_quarantine_factor, e_quarantine_trigger, lockdown_trigger,
                                  unlock_trigger, constant_connection_factor, homogeneous_population,
-                                 constant_movement_factor, start_in_center, uk_fast, uk_slow)]
+                                 constant_movement_factor, start_in_center, uk_data)]
 
     # Main loop of the program: evolve the space the required number of iterations
     # If vaccination is true then create copies of the space with the different parameters
