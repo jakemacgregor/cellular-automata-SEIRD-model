@@ -1,21 +1,23 @@
 from space import Space, plot_vaccination_results
+from compartment import Compartment
 from matplotlib import pyplot as plt
 from copy import deepcopy as copy
+from math import floor
 
 if __name__ == '__main__':
     # Variables describing the model at a high level and whether to use UK dataset
     columns = 50
     rows = 50
     iterations = 50
-    output_timestamps = [0, 5, 10, 15, 20, 25]
-    uk_fast = False
-    uk_slow = False
+    output_timestamps = []
+    uk_data = False
 
     # Parameters of the disease
     sigma = 0.6
     eps = 0.4
     vir = 0.6
-    xi = 0.000
+    xi = 0.0005
+    zeta = 0.005
 
     # Distribution and movement of populations
     homogeneous_population = True
@@ -38,26 +40,24 @@ if __name__ == '__main__':
 
     # Set up model for UK dataset
     if input("Use UK population data? (y/n)") == "y":
-        columns = 109
-        rows = 101
-        uk_fast = True
-
-        if input("Full 173 x 163 run? (y/n)") == "y":
-            uk_slow = True
-            uk_fast = False
-            columns = 163
-            rows = 173
+        columns = 163
+        rows = 173
+        uk_data = True
+        sigma = 1 / 5
+        eps = 1 / 7
+        vir = 0.4
+        iterations = 100
 
     # Allow user override for model setup and population movement/distribution
     if input("Do you want to specify parameters? (y/n)") == "y":
-        if not (uk_fast or uk_slow):
+        if not uk_data:
             columns = int(input("Number of columns (int):") or "50")
             rows = int(input("Number of rows (int):") or "50")
         sigma = float(input("Sigma value (float):") or "0.6")
         eps = float(input("Epsilon value (float):") or "0.4")
         vir = float(input("Virulence (float):") or "0.6")
         iterations = int(input("Number of iterations (int):") or "50")
-        if not (uk_fast or uk_slow):
+        if not uk_data:
             start_in_center = not (input("Start infection in random location? (y/n)") == "y")
             homogeneous_population = not (input("Do you want inhomogeneous population distribution? (y/n)") == "y")
         constant_connection_factor = not (input("Do you want non-constant connections between cells? (y/n)") == "y")
@@ -70,19 +70,19 @@ if __name__ == '__main__':
 
     # Allow setup of NPIs with user-specified parameters
     if input("Do you want to simulate the effects of NPIs? (y/n)") == "y":
-        i_quarantine_factor = float(input("Success rate of quarantining infected people (float):") or "0.98")
+        i_quarantine_factor = float(input("Success rate of quarantining infected people (float):") or "0.81")
         i_quarantine_trigger = float(input("What % infected before quarantining infected people (float):") or "0.001")
-        e_quarantine_factor = float(input("Success rate of asymptomatic quarantine (float):") or "0.2")
+        e_quarantine_factor = float(input("Success rate of asymptomatic quarantine (float):") or "0.17")
         e_quarantine_trigger = float(input("What % infected before asymptomatic quarantine (float):") or "0.003")
         lockdown_trigger = float(input("What % infected before restriction of movement (float):") or "0.05")
-        unlock_trigger = float(input("What % infected before restriction of movement ends (float):") or "0.01")
+        unlock_trigger = float(input("What % infected before restriction of movement ends (float):") or "0.005")
 
     # Create an initial space with the parameters following user input
     # spaces is a list as further spaces can be added for comparison
-    spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, xi, 0, vaccination_time, i_quarantine_factor,
+    spaces: list[Space] = [Space(rows, columns, sigma, eps, vir, xi, zeta, 0, vaccination_time, i_quarantine_factor,
                                  i_quarantine_trigger, e_quarantine_factor, e_quarantine_trigger, lockdown_trigger,
                                  unlock_trigger, constant_connection_factor, homogeneous_population,
-                                 constant_movement_factor, start_in_center, uk_fast, uk_slow)]
+                                 constant_movement_factor, start_in_center, uk_data)]
 
     # Main loop of the program: evolve the space the required number of iterations
     # If vaccination is true then create copies of the space with the different parameters
@@ -97,11 +97,12 @@ if __name__ == '__main__':
             space.evolve()
 
     # Results are written to a CSV
-    spaces[0].write_to_csv()
+    if input("Save to CSV? (y/n)") == "y":
+        spaces[0].write_to_csv()
 
-    # Allow users specify different timesteps for the snapshots of the space - grid is designed for 6 such figurs
+    # Allow users specify different timesteps for the snapshots of the space - grid is designed for 6 such figures
+    # Otherwise divide intervals by 6 and use these equally spaced intervals
     if input("Do you want to specify timestamps for cell space overview? (y/n)") == "y":
-        output_timestamps = []
         print("Enter 6 integer timestamps:")
         for i in range(6):
             t = int(input())
@@ -110,13 +111,30 @@ if __name__ == '__main__':
                 i -= 1
                 continue
             output_timestamps.append(t)
+    else:
+        interval = floor(iterations / 6)
+        for i in range(1, 7):
+            output_timestamps.append(interval*i)
 
     # Plot figures for the initial space by default - this avoids having too many figures
-    spaces[0].plot_seir_over_time()
-    spaces[0].plot_infected_state_at_times(output_timestamps)
-    spaces[0].plot_exposed_state_at_times(output_timestamps)
+    # Save plots to img folder - overwritten after each run, so make copies if required
+    plt.rcParams['figure.figsize'] = [6.8, 4.8]
+    spaces[0].plot_population_over_time(False, list(Compartment))
+    plt.savefig("./img/SEIRD.png", bbox_inches='tight')
+
+    spaces[0].plot_population_over_time(False, [Compartment.EXPOSED, Compartment.INFECTED, Compartment.DECEASED])
+    plt.savefig("./img/EID.png", bbox_inches='tight')
+
+    plt.rcParams['figure.figsize'] = [6, 3.6]
+    spaces[0].plot_state_at_times(output_timestamps, Compartment.INFECTED)
+    plt.savefig("./img/infected_time.png", bbox_inches='tight')
+
+    spaces[0].plot_state_at_times(output_timestamps, Compartment.EXPOSED)
+    plt.savefig("./img/exposed_time.png", bbox_inches='tight')
 
     # Separately plot the results of vaccination for the different spaces if vaccination has taken place
     if vaccination:
+        plt.rcParams['figure.figsize'] = [6, 4]
         plot_vaccination_results(spaces)
+        plt.savefig("./img/vaccination.png", bbox_inches='tight')
     plt.show()
