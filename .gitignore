@@ -131,3 +131,4 @@ dmypy.json
 .DS_Store
 csv_results/
 img/
+.idea/
