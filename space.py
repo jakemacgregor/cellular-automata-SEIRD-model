@@ -10,8 +10,10 @@ from math import floor
 from random import random
 from compartment import Compartment
 
+# Preset start locations used for getting like-for-like comparisons when other parameters are varied
 uk_start_locations = [(160, 139), (137, 75), (142, 112), (85, 87), (154, 70), (96, 16), (96, 25), (164, 70), (100, 115),
                       (110, 81), (46, 26), (51, 63), (87, 69), (70, 79), (120, 60)]
+use_preset_start_locations = False
 
 
 def get_connection_factor(i: int, j: int, const: bool) -> list[list[float]]:
@@ -122,6 +124,8 @@ class Space:
         infected[t] is the number of infected people at time t
     recovered : list[int]
         recovered[t] is the number of recovered people at time t
+    deceased : list[int]
+        deceased[t] is the number of deceased people at time t
 
     delta_susceptible : list[int]
         delta_susceptible[t] is the difference in number of susceptible people between times t and t-1
@@ -131,6 +135,8 @@ class Space:
         delta_infected[t] is the difference in number of infected people between times t and t-1
     delta_recovered : list[int]
         delta_recovered[t] is the difference in number of recovered people between times t and t-1
+    delta_deceased : list[int]
+        delta_deceased[t] is the difference in number of deceased people between times t and t-1
 
     sigma : float
         The rate at which infected people transition to infected
@@ -213,6 +219,8 @@ class Space:
         self.unlock_trigger = unlock_trigger
         self.lockdown_active = False
 
+        # If UK data is being used, load the file and generate cells from that,
+        # otherwise use parameters from main program
         if uk_data:
             data = np.loadtxt("UK_population.asc", skiprows=6)
             cells = [[Cell([i, j], get_pop_uk(i, j, data), get_connection_factor_uk(get_pop_uk(i, j, data)),
@@ -236,9 +244,11 @@ class Space:
         self.cells = cells
 
         if uk_data:
-            self.start_infection_particular(uk_start_locations)
-            # for i in range(15):
-            #     self.start_infection_uk(r, c)
+            if use_preset_start_locations:
+                self.start_infection_particular(uk_start_locations)
+            else:
+                for i in range(15):
+                    self.start_infection_uk(r, c)
         else:
             self.start_infection(r, c, start_center)
         self.update_current_state()
@@ -271,6 +281,10 @@ class Space:
         cell.exposed = [0.3]
 
     def start_infection_particular(self, locations: list[tuple[int, int]]):
+        """
+        Similar to start_infection, but uses particular locations rather than being random.
+        :param locations: list of coordinates of outbreak cells
+        """
         for location in locations:
             cell = self.cells[location[0]][location[1]]
             cell.susceptible = [0.7]
@@ -324,12 +338,23 @@ class Space:
         """
         Returns the von Neumann neighbourhood of a given cell as a 2D array
         """
-        neighbourhood = self.get_moore_neighbourhood(coords)
+        neighbourhood = []
 
-        neighbourhood[0][0] = None
-        neighbourhood[0][2] = None
-        neighbourhood[2][0] = None
-        neighbourhood[2][2] = None
+        for i in range(-1, 2):
+            n = [None, None, None]
+            row = coords[0] + i
+            if not 0 <= row < self.r:
+                neighbourhood.append(n)
+                continue
+            for j in range(-1, 2):
+                if not i == 0 and not j == 0:
+                    continue
+                column = coords[1] + j
+                if not 0 <= column < self.c or (i == 0 and j == 0):
+                    continue
+                n[j + 1] = self.cells[row][column]
+            neighbourhood.append(n)
+
         return neighbourhood
 
     def neighbourhood_transition_term(self, neighbourhood: list[list[Cell]], cell: Cell) -> float:
@@ -396,7 +421,7 @@ class Space:
 
                 # Assume people are infected over being vaccinated as there may be some overlap
                 s_to_e = self.virulence * prev_s * (infected_minus_quarantine + (0.85 * exposed_minus_quarantine)) \
-                    + prev_s * n
+                         + prev_s * n
                 if s_to_e > prev_s:
                     s_to_e = prev_s
 
@@ -428,11 +453,7 @@ class Space:
         Called at the end of an evolution, calculates the mean state of the cells and the approximate S, E, I, R, D
         populations of the cell space overall. Also determines if thresholds have been met to trigger NPIs
         """
-        s = 0.0
-        e = 0.0
-        i = 0.0
-        r = 0.0
-        d = 0.0
+        s, e, i, r, d = 0.0, 0.0, 0.0, 0.0, 0.0
 
         for row in range(self.r):
             for col in range(self.c):

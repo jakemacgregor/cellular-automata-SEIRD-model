@@ -1,15 +1,13 @@
 class Cell:
     def __init__(self, coords: list[int], population: int, connection: list[list[float]], movement: list[list[float]],
                  susceptible: float, exposed: float, infected: float, recovered: float, deceased: float):
-        # Co-ords are an array [i, j] where the cell is in position [i, j] in cell space
+        # Co-ords are a tuple (i, j) where the cell is in position (i, j) in cell space
         self.coords = tuple(coords)
         self.population = population
         self.empty = population == 0
 
-
         # Nested array representing the neighbourhood for a cell of the form:
         # [[NW,N,NE],[W,X,E],[SW,S,SE]] (compass directions)
-        # Each compass direction is replaced with a value for the connection or movement factor for that neighbour
         self.connection = connection
         self.movement = movement
 
@@ -56,7 +54,7 @@ class Cell:
         self.discrete_susceptible.append(round(self.susceptible[-1] * 100) / 100)
         self.discrete_exposed.append(round(self.exposed[-1] * 100) / 100)
         self.discrete_infected.append(round(self.infected[-1] * 100) / 100)
-        self.discrete_deceased.append(round(self.deceased[-1]*100) / 100)
+        self.discrete_deceased.append(round(self.deceased[-1] * 100) / 100)
         self.discrete_recovered.append(1 - self.discrete_susceptible[-1] - self.discrete_exposed[-1]
                                        - self.discrete_infected[-1] - self.discrete_deceased[-1])
         return
