@@ -56,6 +56,8 @@ if __name__ == '__main__':
         sigma = float(input("Sigma value (float):") or "0.6")
         eps = float(input("Epsilon value (float):") or "0.4")
         vir = float(input("Virulence (float):") or "0.6")
+        xi = float(input("Xi value (float):") or "0.0005")
+        zeta = float(input("Zeta value (float):") or "0.005")
         iterations = int(input("Number of iterations (int):") or "50")
         if not uk_data:
             start_in_center = not (input("Start infection in random location? (y/n)") == "y")
