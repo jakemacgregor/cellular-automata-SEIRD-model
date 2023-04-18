@@ -542,7 +542,6 @@ class Space:
         plt.xlabel("t")
         plt.ylabel("Number of people")
         plt.legend()
-        plt.show()
 
     def plot_state_at_times(self, times: list[int], compartment: Compartment) -> None:
         """
